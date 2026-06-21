@@ -100,6 +100,13 @@ public record PythonGenerationMetadata(
     double GenerationDurationSeconds
 );
 
+// Phase 3 DTOs
+public record IngestRequest(string Content, string Source, string Domain, string? Topic = null);
+public record IngestResponse(int ChunksStored, string CollectionName, string Domain, string Source, DateTimeOffset IngestedAt);
+public record KnowledgeStatusResponse(string CollectionName, long PointCount, bool CollectionExists, DateTimeOffset CheckedAt);
+public record CitationDto(string ChunkId, string Source, string Domain, string? Topic, double Score, string Excerpt);
+public record SessionCitationsResponse(Guid SessionId, string ComponentSourceStrategy, List<CitationDto> Citations);
+
 // Internal DTOs for LLM responses
 public record IntentAnalysisResult(string Intent, string Topic, double Confidence);
 public record DomainClassificationResult(string Domain, string Subdomain, double Confidence);

@@ -37,6 +37,8 @@ public class DatabaseInitializer
             );
 
             ALTER TABLE learning_sessions ADD COLUMN IF NOT EXISTS fast_track BOOLEAN NOT NULL DEFAULT FALSE;
+            ALTER TABLE learning_sessions ADD COLUMN IF NOT EXISTS component_source_strategy VARCHAR(50) NOT NULL DEFAULT 'ai_generated';
+            ALTER TABLE learning_sessions ADD COLUMN IF NOT EXISTS citations JSONB;
 
             CREATE TABLE IF NOT EXISTS learning_session_events (
               event_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),

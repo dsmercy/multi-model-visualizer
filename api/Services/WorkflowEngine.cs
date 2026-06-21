@@ -11,17 +11,20 @@ public class WorkflowEngine : IWorkflowEngine
     private readonly AppDbContext _db;
     private readonly IOllamaService _ollama;
     private readonly IGenerationJobService _jobs;
+    private readonly IKnowledgeService _knowledge;
     private readonly IConfiguration _config;
     private readonly ILogger<WorkflowEngine> _logger;
 
     private double IntentThreshold => _config.GetValue<double>("WorkflowEngine:IntentConfidenceThreshold", 0.75);
     private double DomainThreshold => _config.GetValue<double>("WorkflowEngine:DomainConfidenceThreshold", 0.70);
+    private double RagThreshold => _config.GetValue<double>("WorkflowEngine:RagConfidenceThreshold", 0.65);
 
-    public WorkflowEngine(AppDbContext db, IOllamaService ollama, IGenerationJobService jobs, IConfiguration config, ILogger<WorkflowEngine> logger)
+    public WorkflowEngine(AppDbContext db, IOllamaService ollama, IGenerationJobService jobs, IKnowledgeService knowledge, IConfiguration config, ILogger<WorkflowEngine> logger)
     {
         _db = db;
         _ollama = ollama;
         _jobs = jobs;
+        _knowledge = knowledge;
         _config = config;
         _logger = logger;
     }
@@ -35,6 +38,7 @@ public class WorkflowEngine : IWorkflowEngine
             WorkflowState.Created => await HandleCreatedAsync(session, userMessage, cancellationToken),
             WorkflowState.IntentAnalyzed => await HandleIntentAnalyzedAsync(session, userMessage, cancellationToken),
             WorkflowState.DomainClassified => await HandleDomainClassifiedAsync(session, userMessage, cancellationToken),
+            WorkflowState.KnowledgeRetrieved => await HandleKnowledgeRetrievedAsync(session, userMessage, cancellationToken),
             WorkflowState.ConceptExplained => await HandleConceptExplainedAsync(session, userMessage, cancellationToken),
             WorkflowState.ComponentSelectionPending => await HandleComponentSelectionAsync(session, userMessage, cancellationToken),
             WorkflowState.VisualizationPlanned => await HandleVisualizationPlannedAsync(session, userMessage, cancellationToken),
@@ -161,29 +165,119 @@ public class WorkflowEngine : IWorkflowEngine
         return await HandleDomainClassifiedAsync(session, userMessage, ct);
     }
 
-    // DomainClassified -> ConceptExplained
+    // DomainClassified -> KnowledgeRetrieved (Phase 3 RAG step)
     private async Task<(string message, string newState)> HandleDomainClassifiedAsync(LearningSession session, string userMessage, CancellationToken ct)
     {
-        // Step 1: get plain-text explanation
-        var explanationPrompt = $"You are an expert educator. Explain \"{session.Topic}\" ({session.Domain}) in 2-3 clear paragraphs suitable for a general audience. Focus on how it works and why it matters.";
-        var explanation = await _ollama.GenerateAsync(explanationPrompt, useJsonFormat: false, ct);
+        var query = $"{session.Topic} {session.Domain}";
+        _logger.LogInformation("RAG search for: {Query}", query);
+
+        var searchResult = await _knowledge.SearchAsync(query, session.Domain, topK: 5, threshold: RagThreshold, ct);
+
+        // Persist citations as JSON on the session
+        if (searchResult.FoundRelevantContent)
+        {
+            var citations = searchResult.Chunks.Select(c => new
+            {
+                chunkId = c.ChunkId,
+                source = c.Source,
+                domain = c.Domain,
+                topic = c.Topic,
+                score = c.Score,
+                excerpt = c.Content.Length > 200 ? c.Content[..200] + "..." : c.Content
+            });
+            session.Citations = JsonSerializer.Serialize(citations);
+            session.ComponentSourceStrategy = "knowledge_base";
+        }
+        else
+        {
+            session.ComponentSourceStrategy = "ai_generated";
+        }
+
+        session.CurrentState = WorkflowState.KnowledgeRetrieved;
+
+        _db.LearningSessionEvents.Add(new LearningSessionEvent
+        {
+            SessionId = session.SessionId,
+            PreviousState = WorkflowState.DomainClassified,
+            NewState = WorkflowState.KnowledgeRetrieved,
+            Trigger = "RAGSearch",
+            EventPayload = JsonSerializer.Serialize(new
+            {
+                foundContent = searchResult.FoundRelevantContent,
+                chunkCount = searchResult.Chunks.Count,
+                maxScore = searchResult.MaxScore,
+                componentSourceStrategy = session.ComponentSourceStrategy
+            })
+        });
+
+        return await HandleKnowledgeRetrievedAsync(session, userMessage, ct);
+    }
+
+    // KnowledgeRetrieved -> ConceptExplained (RAG-augmented explanation)
+    private async Task<(string message, string newState)> HandleKnowledgeRetrievedAsync(LearningSession session, string userMessage, CancellationToken ct)
+    {
+        string explanation;
+        List<string> components;
+
+        if (session.ComponentSourceStrategy == "knowledge_base" && !string.IsNullOrEmpty(session.Citations))
+        {
+            // Parse stored citations back
+            List<string> contextSnippets;
+            try
+            {
+                using var citDoc = JsonDocument.Parse(session.Citations);
+                contextSnippets = citDoc.RootElement.EnumerateArray()
+                    .Select(el => el.TryGetProperty("excerpt", out var ex) ? ex.GetString() ?? "" : "")
+                    .Where(s => !string.IsNullOrEmpty(s))
+                    .ToList();
+            }
+            catch { contextSnippets = new List<string>(); }
+
+            var contextBlock = string.Join("\n\n", contextSnippets.Select((s, i) => $"[Source {i + 1}]: {s}"));
+
+            var explanationPrompt = $"You are an expert educator. Use the following reference material to explain \"{session.Topic}\" ({session.Domain}).\n\n" +
+                                    $"REFERENCE MATERIAL:\n{contextBlock}\n\n" +
+                                    $"Write a clear 2-3 paragraph explanation for a general audience. Focus on how it works and why it matters. Synthesize from the references above.";
+            explanation = await _ollama.GenerateAsync(explanationPrompt, useJsonFormat: false, ct);
+
+            var componentsPrompt = $"Based on this topic \"{session.Topic}\" and domain \"{session.Domain}\", list 5 key components that could be visualized. Return only a JSON array: [\"Component A\", \"Component B\", \"Component C\", \"Component D\", \"Component E\"]";
+            var componentsResponse = await _ollama.GenerateAsync(componentsPrompt, useJsonFormat: true, ct);
+            components = ParseComponentsList(componentsResponse);
+        }
+        else
+        {
+            // Fallback: pure AI generation
+            var explanationPrompt = $"You are an expert educator. Explain \"{session.Topic}\" ({session.Domain}) in 2-3 clear paragraphs suitable for a general audience. Focus on how it works and why it matters.";
+            explanation = await _ollama.GenerateAsync(explanationPrompt, useJsonFormat: false, ct);
+
+            var componentsPrompt = $"List 5 key components or parts of \"{session.Topic}\" that could be visualized in a diagram. Return only a JSON array of strings, for example: [\"Component A\", \"Component B\", \"Component C\", \"Component D\", \"Component E\"]";
+            var componentsResponse = await _ollama.GenerateAsync(componentsPrompt, useJsonFormat: true, ct);
+            components = ParseComponentsList(componentsResponse);
+        }
+
         if (string.IsNullOrWhiteSpace(explanation))
             explanation = $"Let me explain {session.Topic}. This is an important concept in {session.Domain}.";
 
-        // Step 2: extract components as simple JSON
-        var componentsPrompt = $"List 5 key components or parts of \"{session.Topic}\" that could be visualized in a diagram. Return only a JSON array of strings, for example: [\"Component A\", \"Component B\", \"Component C\", \"Component D\", \"Component E\"]";
-        var componentsResponse = await _ollama.GenerateAsync(componentsPrompt, useJsonFormat: true, ct);
+        if (components.Count == 0)
+            components = new List<string> { "Overview", "Key Concepts", "Core Mechanism", "Applications", "Examples" };
 
-        List<string> components;
+        session.Explanation = explanation;
+        session.SelectedComponents = string.Join(", ", components);
+        session.CurrentState = WorkflowState.ConceptExplained;
+
+        return await HandleConceptExplainedAsync(session, userMessage, ct);
+    }
+
+    private List<string> ParseComponentsList(string componentsResponse)
+    {
         try
         {
             var cleaned = Regex.Replace(componentsResponse, @"```(?:json)?\s*", "").Replace("```", "").Trim();
             using var doc = JsonDocument.Parse(cleaned);
-            components = new List<string>();
+            var components = new List<string>();
 
             if (doc.RootElement.ValueKind == JsonValueKind.Array)
             {
-                // Bare array: ["a", "b", ...]
                 foreach (var el in doc.RootElement.EnumerateArray())
                     if (el.ValueKind == JsonValueKind.String)
                         components.Add(el.GetString()!);
@@ -194,7 +288,6 @@ public class WorkflowEngine : IWorkflowEngine
                 {
                     if (prop.Value.ValueKind == JsonValueKind.Array)
                     {
-                        // {"components": ["a", "b", ...]}
                         foreach (var el in prop.Value.EnumerateArray())
                             if (el.ValueKind == JsonValueKind.String)
                                 components.Add(el.GetString()!);
@@ -202,25 +295,16 @@ public class WorkflowEngine : IWorkflowEngine
                     }
                     else if (prop.Value.ValueKind == JsonValueKind.String)
                     {
-                        // {"component1": "a", "component2": "b", ...}
                         components.Add(prop.Value.GetString()!);
                     }
                 }
             }
+            return components;
         }
         catch
         {
-            components = new List<string>();
+            return new List<string>();
         }
-
-        if (components.Count == 0)
-            components = new List<string> { "Overview", "Key Concepts", "Core Mechanism", "Applications", "Examples" };
-
-        session.Explanation = explanation;
-        session.SelectedComponents = string.Join(", ", components);
-        session.CurrentState = WorkflowState.ConceptExplained;
-
-        return await HandleConceptExplainedAsync(session, userMessage, ct);
     }
 
     // ConceptExplained -> ComponentSelectionPending

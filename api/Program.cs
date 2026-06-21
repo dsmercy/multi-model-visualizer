@@ -2,6 +2,7 @@ using System.Threading.Channels;
 using Microsoft.EntityFrameworkCore;
 using MultiModelVisualizer.Api.Data;
 using MultiModelVisualizer.Api.Services;
+using Qdrant.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,6 +46,17 @@ builder.Services.AddSingleton(jobQueue);
 builder.Services.AddSingleton<JobProgressHub>();
 builder.Services.AddScoped<IGenerationJobService, GenerationJobService>();
 builder.Services.AddHostedService<GenerationWorker>();
+
+// Qdrant client (singleton — gRPC connection)
+var qdrantHost = builder.Configuration["Qdrant:Host"] ?? "localhost";
+var qdrantPort = builder.Configuration.GetValue<int>("Qdrant:Port", 6334);
+builder.Services.AddSingleton(new QdrantClient(qdrantHost, qdrantPort));
+
+// Knowledge service — uses its own HttpClient for Ollama embeddings
+builder.Services.AddHttpClient<IKnowledgeService, KnowledgeService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(60);
+});
 
 // Workflow engine
 builder.Services.AddScoped<IWorkflowEngine, WorkflowEngine>();

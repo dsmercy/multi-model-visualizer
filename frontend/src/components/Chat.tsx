@@ -2,15 +2,51 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   createSession, sendMessage, approveSession, rejectSession,
   refineSession, getSessionEvents, getJobResult, subscribeJobProgress,
+  getSessionCitations,
 } from '../api/client';
-import type { ChatMessage, SessionEvent, JobProgressEvent, JobResult } from '../types';
+import type { ChatMessage, SessionEvent, JobProgressEvent, JobResult, CitationDto } from '../types';
 import { Message } from './Message';
 import { SessionState } from './SessionState';
 import { MermaidDiagram } from './MermaidDiagram';
 import { JobProgress } from './JobProgress';
+import AlgorithmAnimation from './AlgorithmAnimation';
 
 let msgCounter = 0;
 const genId = () => `msg-${++msgCounter}-${Date.now()}`;
+
+const thinkingStyle = document.createElement('style');
+thinkingStyle.textContent = `
+  @keyframes blink {
+    0%, 80%, 100% { opacity: 0; }
+    40% { opacity: 1; }
+  }
+  .thinking-dot {
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #64748b;
+    margin: 0 2px;
+    animation: blink 1.4s infinite both;
+  }
+  .thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+  .thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+`;
+if (!document.head.querySelector('[data-thinking]')) {
+  thinkingStyle.setAttribute('data-thinking', '');
+  document.head.appendChild(thinkingStyle);
+}
+
+function ThinkingIndicator() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', color: '#64748b', fontSize: 13 }}>
+      <span>AI is thinking</span>
+      <span className="thinking-dot" />
+      <span className="thinking-dot" />
+      <span className="thinking-dot" />
+    </div>
+  );
+}
 
 export function Chat() {
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -30,6 +66,13 @@ export function Chat() {
   const [jobResult, setJobResult] = useState<JobResult | null>(null);
   const jobAbortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Phase 3 — citations + animation
+  const [citations, setCitations] = useState<CitationDto[]>([]);
+  const [componentSourceStrategy, setComponentSourceStrategy] = useState<string>('ai_generated');
+  const [showAnimation, setShowAnimation] = useState(false);
+  const [topic, setTopic] = useState<string>('');
+  const [components, setComponents] = useState<string[]>([]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -80,6 +123,14 @@ export function Chat() {
               id: genId(), role: 'assistant', content: msg,
               timestamp: new Date(), jobId, jobResult: result,
             }]);
+
+            // Fetch citations for this session
+            if (sessionId) {
+              getSessionCitations(sessionId).then(c => {
+                setCitations(c.citations);
+                setComponentSourceStrategy(c.componentSourceStrategy);
+              }).catch(() => {});
+            }
           } else {
             addAssistantMessage(`Generation failed: ${result.outputContent ?? 'Unknown error'}.\n\nSay **"refine"** to try again.`);
           }
@@ -125,6 +176,13 @@ export function Chat() {
     try {
       const resp = await sendMessage(sessionId, content);
       setCurrentState(resp.newState);
+      // Capture topic from ComponentSelectionPending message (has "Topic: ..." header)
+      if (resp.newState === 'ComponentSelectionPending' && resp.message.includes('**Topic:')) {
+        const topicMatch = resp.message.match(/\*\*Topic:\s*([^*\n]+)\*\*/);
+        if (topicMatch) setTopic(topicMatch[1].trim());
+        const compMatch = resp.message.match(/\d+\.\s*(.+)/g);
+        if (compMatch) setComponents(compMatch.map(c => c.replace(/^\d+\.\s*/, '').trim()));
+      }
       addAssistantMessage(resp.message);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unexpected error';
@@ -171,6 +229,8 @@ export function Chat() {
     setJobResult(null);
     setJobProgress(null);
     setActiveJobId(null);
+    setCitations([]);
+    setShowAnimation(false);
     try {
       const resp = await refineSession(sessionId);
       setCurrentState(resp.newState);
@@ -187,6 +247,7 @@ export function Chat() {
     setIsInitializing(true);
     setMessages([]); setError(null); setShowEvents(false); setEvents([]);
     setActiveJobId(null); setJobProgress(null); setJobResult(null);
+    setCitations([]); setComponentSourceStrategy('ai_generated'); setShowAnimation(false); setTopic(''); setComponents([]);
     try {
       const session = await createSession();
       setSessionId(session.sessionId);
@@ -215,6 +276,7 @@ export function Chat() {
   const isFailed = currentState === 'Failed';
   const hasOutput = jobResult?.status === 'Completed' && (jobResult.outputContent || jobResult.outputUrl);
   const isMermaid = jobResult?.outputType === 'mermaid' && !!jobResult.outputContent;
+  const hasKnowledgeBase = componentSourceStrategy === 'knowledge_base' && citations.length > 0;
 
   // ── Styles ────────────────────────────────────────────────────────────────
   const s = {
@@ -251,7 +313,7 @@ export function Chat() {
       <div style={s.header}>
         <div>
           <div style={s.title}>AI Visual Learning Platform</div>
-          <div style={s.subtitle}>Phase 2 — Visualization & Generation</div>
+          <div style={s.subtitle}>Phase 3 — Intelligence & RAG</div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button style={s.btn} onClick={handleToggleEvents}>{showEvents ? 'Hide Events' : 'Show Events'}</button>
@@ -275,7 +337,7 @@ export function Chat() {
               <JobProgress jobId={activeJobId} event={jobProgress} />
             )}
 
-            {isLoading && <div style={s.loading}>● AI is thinking...</div>}
+            {isLoading && <ThinkingIndicator />}
             <div ref={messagesEndRef} />
           </div>
 
@@ -340,15 +402,62 @@ export function Chat() {
         {/* Output panel */}
         {hasOutput && (
           <div style={s.outputCol}>
-            <div style={s.outputHeader}>
-              {isMermaid ? '📊 Diagram Output' : '📄 Text Output'}
-              {jobResult!.fallbackAttempt > 0 && <span style={{ color: '#fb923c', marginLeft: '8px' }}>(fallback)</span>}
+            {/* Source strategy badge */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div style={s.outputHeader}>
+                {isMermaid ? '📊 Diagram Output' : '📄 Text Output'}
+                {jobResult!.fallbackAttempt > 0 && <span style={{ color: '#fb923c', marginLeft: '8px' }}>(fallback)</span>}
+              </div>
+              <span style={{
+                fontSize: 10, padding: '2px 8px', borderRadius: 20,
+                background: hasKnowledgeBase ? '#1e3a5f' : '#1e2a1e',
+                color: hasKnowledgeBase ? '#60a5fa' : '#4ade80',
+              }}>
+                {hasKnowledgeBase ? '🔍 knowledge base' : '🤖 ai generated'}
+              </span>
             </div>
+
+            {/* Diagram or text */}
             {isMermaid ? (
               <MermaidDiagram code={jobResult!.outputContent!} />
             ) : (
               <div style={{ whiteSpace: 'pre-wrap', fontSize: '13px', color: '#94a3b8', lineHeight: 1.6 }}>
                 {jobResult!.outputContent}
+              </div>
+            )}
+
+            {/* Algorithm Animation toggle */}
+            {topic && components.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <button
+                  onClick={() => setShowAnimation(p => !p)}
+                  style={{ ...s.btn, width: '100%', textAlign: 'center', padding: '8px', color: '#a5b4fc', borderColor: '#4f6ef7' }}
+                >
+                  {showAnimation ? '▲ Hide' : '▼ Show'} Algorithm Animation
+                </button>
+                {showAnimation && (
+                  <div style={{ marginTop: 12 }}>
+                    <AlgorithmAnimation topic={topic} components={components} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Citations panel */}
+            {hasKnowledgeBase && (
+              <div style={{ marginTop: 16, background: '#0f172a', borderRadius: 8, padding: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                  Sources ({citations.length})
+                </div>
+                {citations.map((c, i) => (
+                  <div key={c.chunkId} style={{ marginBottom: 8, padding: '6px 8px', background: '#1e293b', borderRadius: 4, borderLeft: '3px solid #4f6ef7' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8' }}>[{i + 1}] {c.source}</span>
+                      <span style={{ fontSize: 10, color: '#475569' }}>score: {c.score.toFixed(2)}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.5 }}>{c.excerpt}</div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

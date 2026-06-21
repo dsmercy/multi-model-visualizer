@@ -74,10 +74,26 @@ export interface ChatMessage {
   jobResult?: JobResult;
 }
 
+export interface CitationDto {
+  chunkId: string;
+  source: string;
+  domain: string;
+  topic: string | null;
+  score: number;
+  excerpt: string;
+}
+
+export interface SessionCitationsResponse {
+  sessionId: string;
+  componentSourceStrategy: string;
+  citations: CitationDto[];
+}
+
 export const WORKFLOW_STATES = [
   'Created',
   'IntentAnalyzed',
   'DomainClassified',
+  'KnowledgeRetrieved',
   'ConceptExplained',
   'ComponentSelectionPending',
   'VisualizationPlanned',

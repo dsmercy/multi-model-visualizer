@@ -1,6 +1,7 @@
 import type {
   CreateSessionResponse, SendMessageResponse, Session,
   SessionEvent, ApproveResponse, JobResult, JobProgressEvent,
+  SessionCitationsResponse,
 } from '../types';
 
 const BASE = '/api';
@@ -43,6 +44,9 @@ export const getSessionEvents = (id: string) =>
 
 export const getJobResult = (jobId: string) =>
   req<JobResult>(`/jobs/${jobId}/result`);
+
+export const getSessionCitations = (id: string) =>
+  req<SessionCitationsResponse>(`/sessions/${id}/citations`);
 
 export function subscribeJobProgress(
   jobId: string,

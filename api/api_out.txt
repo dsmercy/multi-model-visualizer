@@ -1,0 +1,40 @@
+Using launch settings from C:\Projects\AI Projects\multi-model-visualizer\api\Properties\launchSettings.json...
+Building...
+info: MultiModelVisualizer.Api.Data.DatabaseInitializer[0]
+      Initializing database schema...
+info: MultiModelVisualizer.Api.Data.DatabaseInitializer[0]
+      Database schema initialized successfully.
+info: Program[0]
+      Database initialization complete.
+dbug: Microsoft.Extensions.Hosting.Internal.Host[1]
+      Hosting starting
+info: MultiModelVisualizer.Api.Services.GenerationWorker[0]
+      GenerationWorker started.
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5000
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: C:\Projects\AI Projects\multi-model-visualizer\api
+dbug: Microsoft.Extensions.Hosting.Internal.Host[2]
+      Hosting started
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost:5000/api/admin/knowledge/status - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'MultiModelVisualizer.Api.Controllers.KnowledgeController.Status (MultiModelVisualizer.Api)'
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[102]
+      Route matched with {action = "Status", controller = "Knowledge"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.ActionResult`1[MultiModelVisualizer.Api.Models.KnowledgeStatusResponse]] Status(System.Threading.CancellationToken) on controller MultiModelVisualizer.Api.Controllers.KnowledgeController (MultiModelVisualizer.Api).
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10401]
+      An 'IServiceProvider' was created for internal use by Entity Framework.
+info: MultiModelVisualizer.Api.Services.KnowledgeService[0]
+      Created Qdrant collection 'knowledge'
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ObjectResultExecutor[1]
+      Executing OkObjectResult, writing value of type 'MultiModelVisualizer.Api.Models.KnowledgeStatusResponse'.
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[105]
+      Executed action MultiModelVisualizer.Api.Controllers.KnowledgeController.Status (MultiModelVisualizer.Api) in 269.5471ms
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'MultiModelVisualizer.Api.Controllers.KnowledgeController.Status (MultiModelVisualizer.Api)'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost:5000/api/admin/knowledge/status - 200 - application/json;+charset=utf-8 296.7970ms

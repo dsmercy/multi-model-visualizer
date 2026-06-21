@@ -47,6 +47,12 @@ public class LearningSession
     [Column("fast_track")]
     public bool FastTrack { get; set; } = false;
 
+    [Column("component_source_strategy")]
+    public string ComponentSourceStrategy { get; set; } = "ai_generated";
+
+    [Column("citations", TypeName = "jsonb")]
+    public string? Citations { get; set; }
+
     [Column("created_date")]
     public DateTimeOffset CreatedDate { get; set; } = DateTimeOffset.UtcNow;
 
@@ -66,6 +72,8 @@ public static class WorkflowState
     public const string ComponentSelectionPending = "ComponentSelectionPending";
     public const string VisualizationPlanned = "VisualizationPlanned";
     public const string ApprovalPending = "ApprovalPending";
+    // Phase 3
+    public const string KnowledgeRetrieved = "KnowledgeRetrieved";
     // Phase 2
     public const string GenerationQueued = "GenerationQueued";
     public const string Generating = "Generating";
