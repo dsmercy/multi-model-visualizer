@@ -98,6 +98,63 @@ public class SessionsController : ControllerBase
         return Ok(events);
     }
 
+    // POST /api/sessions/{id}/approve
+    [HttpPost("{id:guid}/approve")]
+    public async Task<ActionResult<ApproveResponse>> Approve(Guid id, CancellationToken ct)
+    {
+        var session = await _db.LearningSessions.FindAsync(new object[] { id }, ct);
+        if (session == null)
+            return NotFound(new { error = $"Session {id} not found." });
+
+        if (session.CurrentState != WorkflowState.ApprovalPending)
+            return BadRequest(new { error = $"Session must be in ApprovalPending state. Current: {session.CurrentState}" });
+
+        try
+        {
+            var response = await _workflow.ApproveAsync(session, ct);
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error approving session {SessionId}", id);
+            return StatusCode(500, new { error = "Failed to enqueue generation job." });
+        }
+    }
+
+    // POST /api/sessions/{id}/reject
+    [HttpPost("{id:guid}/reject")]
+    public async Task<ActionResult<SendMessageResponse>> Reject(Guid id, CancellationToken ct)
+    {
+        var session = await _db.LearningSessions.FindAsync(new object[] { id }, ct);
+        if (session == null)
+            return NotFound(new { error = $"Session {id} not found." });
+
+        if (session.CurrentState != WorkflowState.ApprovalPending)
+            return BadRequest(new { error = $"Session must be in ApprovalPending state. Current: {session.CurrentState}" });
+
+        var response = await _workflow.ProcessMessageAsync(session, "no", ct);
+        return Ok(response);
+    }
+
+    // POST /api/sessions/{id}/refine
+    [HttpPost("{id:guid}/refine")]
+    public async Task<ActionResult<SendMessageResponse>> Refine(Guid id, CancellationToken ct)
+    {
+        var session = await _db.LearningSessions.FindAsync(new object[] { id }, ct);
+        if (session == null)
+            return NotFound(new { error = $"Session {id} not found." });
+
+        try
+        {
+            var response = await _workflow.RefineAsync(session, ct);
+            return Ok(response);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
     private static SessionDto MapToDto(LearningSession s) => new(
         s.SessionId, s.UserId, s.CurrentState, s.Topic, s.Intent, s.Domain,
         s.SelectedComponents, s.DifficultyLevel, s.VisualizationType,

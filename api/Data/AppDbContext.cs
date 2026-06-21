@@ -9,6 +9,7 @@ public class AppDbContext : DbContext
 
     public DbSet<LearningSession> LearningSessions => Set<LearningSession>();
     public DbSet<LearningSessionEvent> LearningSessionEvents => Set<LearningSessionEvent>();
+    public DbSet<GenerationJob> GenerationJobs => Set<GenerationJob>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -25,6 +26,22 @@ public class AppDbContext : DbContext
 
             // Store JSONB column as text
             entity.Property(e => e.VisualizationPlan).HasColumnType("jsonb");
+        });
+
+        modelBuilder.Entity<GenerationJob>(entity =>
+        {
+            entity.HasKey(e => e.JobId);
+            entity.Property(e => e.JobId).HasDefaultValueSql("gen_random_uuid()");
+            entity.Property(e => e.Status).HasDefaultValue("Queued");
+            entity.Property(e => e.FallbackAttempt).HasDefaultValue(0);
+            entity.Property(e => e.Progress).HasDefaultValue(0);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()");
+
+            entity.HasOne(e => e.Session)
+                  .WithMany(s => s.Jobs)
+                  .HasForeignKey(e => e.SessionId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<LearningSessionEvent>(entity =>

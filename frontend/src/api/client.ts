@@ -1,44 +1,69 @@
-import type { CreateSessionResponse, SendMessageResponse, Session, SessionEvent } from '../types';
+import type {
+  CreateSessionResponse, SendMessageResponse, Session,
+  SessionEvent, ApproveResponse, JobResult, JobProgressEvent,
+} from '../types';
 
-const BASE_URL = '/api';
+const BASE = '/api';
 
-async function handleResponse<T>(res: Response): Promise<T> {
+async function req<T>(path: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(BASE + path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options,
+  });
   if (!res.ok) {
-    let errorMsg = `HTTP ${res.status}`;
-    try {
-      const body = await res.json();
-      errorMsg = body.error || errorMsg;
-    } catch {
-      // ignore parse errors
-    }
-    throw new Error(errorMsg);
+    const body = await res.json().catch(() => ({})) as Record<string, string>;
+    throw new Error(body['error'] ?? `HTTP ${res.status}`);
   }
   return res.json() as Promise<T>;
 }
 
-export async function createSession(): Promise<CreateSessionResponse> {
-  const res = await fetch(`${BASE_URL}/sessions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-  });
-  return handleResponse<CreateSessionResponse>(res);
-}
+export const createSession = () =>
+  req<CreateSessionResponse>('/sessions', { method: 'POST' });
 
-export async function getSession(sessionId: string): Promise<Session> {
-  const res = await fetch(`${BASE_URL}/sessions/${sessionId}`);
-  return handleResponse<Session>(res);
-}
+export const getSession = (id: string) =>
+  req<Session>(`/sessions/${id}`);
 
-export async function sendMessage(sessionId: string, content: string): Promise<SendMessageResponse> {
-  const res = await fetch(`${BASE_URL}/sessions/${sessionId}/messages`, {
+export const sendMessage = (id: string, content: string) =>
+  req<SendMessageResponse>(`/sessions/${id}/messages`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ content }),
   });
-  return handleResponse<SendMessageResponse>(res);
-}
 
-export async function getSessionEvents(sessionId: string): Promise<SessionEvent[]> {
-  const res = await fetch(`${BASE_URL}/sessions/${sessionId}/events`);
-  return handleResponse<SessionEvent[]>(res);
+export const approveSession = (id: string) =>
+  req<ApproveResponse>(`/sessions/${id}/approve`, { method: 'POST' });
+
+export const rejectSession = (id: string) =>
+  req<SendMessageResponse>(`/sessions/${id}/reject`, { method: 'POST' });
+
+export const refineSession = (id: string) =>
+  req<SendMessageResponse>(`/sessions/${id}/refine`, { method: 'POST' });
+
+export const getSessionEvents = (id: string) =>
+  req<SessionEvent[]>(`/sessions/${id}/events`);
+
+export const getJobResult = (jobId: string) =>
+  req<JobResult>(`/jobs/${jobId}/result`);
+
+export function subscribeJobProgress(
+  jobId: string,
+  onEvent: (evt: JobProgressEvent) => void,
+  onDone: () => void,
+  signal: AbortSignal,
+) {
+  const es = new EventSource(`${BASE}/jobs/${jobId}/progress`);
+
+  es.onmessage = (e) => {
+    try {
+      const evt = JSON.parse(e.data as string) as JobProgressEvent;
+      onEvent(evt);
+      if (evt.status === 'Completed' || evt.status === 'Failed') {
+        es.close();
+        onDone();
+      }
+    } catch { /* ignore */ }
+  };
+
+  es.onerror = () => { es.close(); onDone(); };
+  signal.addEventListener('abort', () => es.close());
+  return () => es.close();
 }

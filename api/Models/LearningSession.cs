@@ -44,6 +44,9 @@ public class LearningSession
     [Column("final_output")]
     public string? FinalOutput { get; set; }
 
+    [Column("fast_track")]
+    public bool FastTrack { get; set; } = false;
+
     [Column("created_date")]
     public DateTimeOffset CreatedDate { get; set; } = DateTimeOffset.UtcNow;
 
@@ -51,6 +54,7 @@ public class LearningSession
     public DateTimeOffset UpdatedDate { get; set; } = DateTimeOffset.UtcNow;
 
     public ICollection<LearningSessionEvent> Events { get; set; } = new List<LearningSessionEvent>();
+    public ICollection<GenerationJob> Jobs { get; set; } = new List<GenerationJob>();
 }
 
 public static class WorkflowState
@@ -62,11 +66,11 @@ public static class WorkflowState
     public const string ComponentSelectionPending = "ComponentSelectionPending";
     public const string VisualizationPlanned = "VisualizationPlanned";
     public const string ApprovalPending = "ApprovalPending";
+    // Phase 2
+    public const string GenerationQueued = "GenerationQueued";
+    public const string Generating = "Generating";
+    public const string Generated = "Generated";
+    public const string Failed = "Failed";
+    public const string FallbackGeneration = "FallbackGeneration";
     public const string Completed = "Completed";
-
-    public static readonly IReadOnlyList<string> All = new[]
-    {
-        Created, IntentAnalyzed, DomainClassified, ConceptExplained,
-        ComponentSelectionPending, VisualizationPlanned, ApprovalPending, Completed
-    };
 }

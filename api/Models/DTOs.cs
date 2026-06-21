@@ -47,6 +47,59 @@ public record HealthResponse(
     DateTimeOffset Timestamp
 );
 
+// Phase 2 DTOs
+public record ApproveResponse(Guid JobId, string Status, Guid SessionId);
+
+public record JobProgressEvent(Guid JobId, string Status, int Progress, string? OutputType = null, string? OutputUrl = null, string? ErrorCode = null);
+
+public record JobResultResponse(
+    Guid JobId,
+    Guid SessionId,
+    string Status,
+    string? OutputType,
+    string? OutputUrl,
+    string? OutputContent,
+    int FallbackAttempt,
+    int Progress,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt
+);
+
+public record GenerationContract(
+    Guid JobId,
+    Guid SessionId,
+    string VisualizationType,
+    string Concept,
+    string Domain,
+    List<string> Components,
+    GenerationSettings Settings,
+    int FallbackAttempt
+);
+
+public record GenerationSettings(
+    bool Narration,
+    bool Labels,
+    string Difficulty,
+    string DetailLevel,
+    string RenderingStyle
+);
+
+public record PythonGenerationResult(
+    Guid JobId,
+    string Status,
+    string? OutputType,
+    string? OutputUrl,
+    string? OutputContent,
+    string? ErrorCode,
+    bool Retryable,
+    PythonGenerationMetadata? Metadata
+);
+
+public record PythonGenerationMetadata(
+    List<string>? ComponentsCovered,
+    double GenerationDurationSeconds
+);
+
 // Internal DTOs for LLM responses
 public record IntentAnalysisResult(string Intent, string Topic, double Confidence);
 public record DomainClassificationResult(string Domain, string Subdomain, double Confidence);

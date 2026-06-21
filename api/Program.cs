@@ -1,10 +1,10 @@
+using System.Threading.Channels;
 using Microsoft.EntityFrameworkCore;
 using MultiModelVisualizer.Api.Data;
 using MultiModelVisualizer.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
@@ -19,20 +19,32 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Database
 var connectionString = builder.Configuration.GetConnectionString("PostgreSQL")
     ?? throw new InvalidOperationException("PostgreSQL connection string is required.");
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
+// DbContext — scoped via AddDbContext for controllers/services; worker creates its own scopes via IServiceScopeFactory
+builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 
-// Ollama HTTP client
+// Ollama
 builder.Services.AddHttpClient<IOllamaService, OllamaService>(client =>
 {
-    var ollamaBaseUrl = builder.Configuration["AI:OllamaBaseUrl"] ?? "http://localhost:11434";
-    client.BaseAddress = new Uri(ollamaBaseUrl);
+    client.BaseAddress = new Uri(builder.Configuration["AI:OllamaBaseUrl"] ?? "http://localhost:11434");
     client.Timeout = TimeSpan.FromSeconds(120);
 });
+
+// Python AI service
+builder.Services.AddHttpClient<IPythonAiService, PythonAiService>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["PythonService:BaseUrl"] ?? "http://localhost:8000");
+    client.Timeout = TimeSpan.FromMinutes(builder.Configuration.GetValue<int>("PythonService:JobTimeoutMinutes", 10));
+});
+
+// Generation job infrastructure
+var jobQueue = Channel.CreateUnbounded<Guid>(new UnboundedChannelOptions { SingleReader = true });
+builder.Services.AddSingleton(jobQueue);
+builder.Services.AddSingleton<JobProgressHub>();
+builder.Services.AddScoped<IGenerationJobService, GenerationJobService>();
+builder.Services.AddHostedService<GenerationWorker>();
 
 // Workflow engine
 builder.Services.AddScoped<IWorkflowEngine, WorkflowEngine>();
@@ -58,5 +70,4 @@ using (var scope = app.Services.CreateScope())
 
 app.UseCors();
 app.MapControllers();
-
 app.Run();

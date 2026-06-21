@@ -27,6 +27,34 @@ export interface SendMessageResponse {
   sessionId: string;
 }
 
+export interface ApproveResponse {
+  jobId: string;
+  status: string;
+  sessionId: string;
+}
+
+export interface JobProgressEvent {
+  jobId: string;
+  status: string;
+  progress: number;
+  outputType?: string;
+  outputUrl?: string;
+  errorCode?: string;
+}
+
+export interface JobResult {
+  jobId: string;
+  sessionId: string;
+  status: string;
+  outputType: string | null;
+  outputUrl: string | null;
+  outputContent: string | null;
+  fallbackAttempt: number;
+  progress: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SessionEvent {
   eventId: string;
   sessionId: string;
@@ -42,6 +70,8 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  jobId?: string;
+  jobResult?: JobResult;
 }
 
 export const WORKFLOW_STATES = [
@@ -52,7 +82,15 @@ export const WORKFLOW_STATES = [
   'ComponentSelectionPending',
   'VisualizationPlanned',
   'ApprovalPending',
+  'GenerationQueued',
+  'Generating',
+  'Generated',
+  'Failed',
+  'FallbackGeneration',
   'Completed',
 ] as const;
 
 export type WorkflowState = typeof WORKFLOW_STATES[number];
+
+export const GENERATION_STATES: WorkflowState[] = ['GenerationQueued', 'Generating', 'Generated', 'FallbackGeneration'];
+export const TERMINAL_STATES: WorkflowState[] = ['Completed', 'Failed'];

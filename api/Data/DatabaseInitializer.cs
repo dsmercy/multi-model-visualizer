@@ -31,9 +31,12 @@ public class DatabaseInitializer
               visualization_plan JSONB,
               explanation   TEXT,
               final_output  TEXT,
+              fast_track    BOOLEAN NOT NULL DEFAULT FALSE,
               created_date  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
               updated_date  TIMESTAMPTZ NOT NULL DEFAULT NOW()
             );
+
+            ALTER TABLE learning_sessions ADD COLUMN IF NOT EXISTS fast_track BOOLEAN NOT NULL DEFAULT FALSE;
 
             CREATE TABLE IF NOT EXISTS learning_session_events (
               event_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -43,6 +46,22 @@ public class DatabaseInitializer
               trigger        VARCHAR(100),
               event_payload  JSONB,
               created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+
+            CREATE TABLE IF NOT EXISTS generation_jobs (
+              job_id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              session_id         UUID NOT NULL REFERENCES learning_sessions(session_id),
+              status             VARCHAR(50) NOT NULL DEFAULT 'Queued',
+              visualization_type VARCHAR(50),
+              fallback_attempt   INT NOT NULL DEFAULT 0,
+              output_type        VARCHAR(50),
+              output_url         TEXT,
+              output_content     TEXT,
+              thumbnail_url      TEXT,
+              error_code         VARCHAR(100),
+              progress           INT NOT NULL DEFAULT 0,
+              created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+              updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
             );
             """;
 

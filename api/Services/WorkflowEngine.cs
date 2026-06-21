@@ -10,16 +10,18 @@ public class WorkflowEngine : IWorkflowEngine
 {
     private readonly AppDbContext _db;
     private readonly IOllamaService _ollama;
+    private readonly IGenerationJobService _jobs;
     private readonly IConfiguration _config;
     private readonly ILogger<WorkflowEngine> _logger;
 
     private double IntentThreshold => _config.GetValue<double>("WorkflowEngine:IntentConfidenceThreshold", 0.75);
     private double DomainThreshold => _config.GetValue<double>("WorkflowEngine:DomainConfidenceThreshold", 0.70);
 
-    public WorkflowEngine(AppDbContext db, IOllamaService ollama, IConfiguration config, ILogger<WorkflowEngine> logger)
+    public WorkflowEngine(AppDbContext db, IOllamaService ollama, IGenerationJobService jobs, IConfiguration config, ILogger<WorkflowEngine> logger)
     {
         _db = db;
         _ollama = ollama;
+        _jobs = jobs;
         _config = config;
         _logger = logger;
     }
@@ -36,10 +38,15 @@ public class WorkflowEngine : IWorkflowEngine
             WorkflowState.ConceptExplained => await HandleConceptExplainedAsync(session, userMessage, cancellationToken),
             WorkflowState.ComponentSelectionPending => await HandleComponentSelectionAsync(session, userMessage, cancellationToken),
             WorkflowState.VisualizationPlanned => await HandleVisualizationPlannedAsync(session, userMessage, cancellationToken),
-            WorkflowState.ApprovalPending => await HandleApprovalPendingAsync(session, userMessage, cancellationToken),
-            WorkflowState.Completed => (
-                "This session is already completed. Please start a new session to explore another topic.",
-                WorkflowState.Completed
+            WorkflowState.ApprovalPending => await HandleApprovalPendingMessageAsync(session, userMessage, cancellationToken),
+            WorkflowState.GenerationQueued or WorkflowState.Generating => (
+                "Your visualization is being generated. Please wait for the progress updates.",
+                session.CurrentState
+            ),
+            WorkflowState.Generated or WorkflowState.Completed => await HandleRefinementRequestAsync(session, userMessage, cancellationToken),
+            WorkflowState.Failed => (
+                "Generation failed. Please start a new session or use 'refine' to try again.",
+                WorkflowState.Failed
             ),
             _ => throw new InvalidOperationException($"Unknown workflow state: {session.CurrentState}")
         };
@@ -77,6 +84,11 @@ public class WorkflowEngine : IWorkflowEngine
     // Created -> IntentAnalyzed
     private async Task<(string message, string newState)> HandleCreatedAsync(LearningSession session, string userMessage, CancellationToken ct)
     {
+        // Fast-track: skip explanation, jump straight to component selection
+        var normalizedMsg = userMessage.Trim().ToLowerInvariant();
+        var isFastTrack = normalizedMsg.Contains("skip explanation") || normalizedMsg.Contains("just generate") ||
+                          normalizedMsg.Contains("skip to visualization") || normalizedMsg.Contains("fast track");
+
         var prompt = "Extract the learning intent from this message. The user wants to learn something.\n" +
                      $"Message: \"{userMessage}\"\n\n" +
                      "Return JSON with this exact structure:\n" +
@@ -93,6 +105,28 @@ public class WorkflowEngine : IWorkflowEngine
                 "I'd love to help you learn! Could you be more specific about what you'd like to understand? For example: 'Explain how TCP/IP networking works' or 'Help me understand photosynthesis'.",
                 WorkflowState.Created
             );
+        }
+
+        if (isFastTrack)
+        {
+            session.Intent = result.Intent;
+            session.Topic = result.Topic;
+            session.FastTrack = true;
+            session.CurrentState = WorkflowState.ConceptExplained;
+            // Set placeholder explanation and default components
+            session.Explanation = $"Fast-track mode: generating visualization for {result.Topic}.";
+            session.SelectedComponents = "Overview, Key Concepts, Core Mechanism, Applications, Examples";
+
+            _db.LearningSessionEvents.Add(new LearningSessionEvent
+            {
+                SessionId = session.SessionId,
+                PreviousState = WorkflowState.Created,
+                NewState = WorkflowState.ConceptExplained,
+                Trigger = "fast_track",
+                EventPayload = JsonSerializer.Serialize(new { topic = result.Topic, fastTrack = true })
+            });
+
+            return await HandleConceptExplainedAsync(session, userMessage, ct);
         }
 
         session.Intent = result.Intent;
@@ -280,8 +314,8 @@ public class WorkflowEngine : IWorkflowEngine
         return (message, WorkflowState.ApprovalPending);
     }
 
-    // ApprovalPending -> Completed or back to ComponentSelectionPending
-    private async Task<(string message, string newState)> HandleApprovalPendingAsync(LearningSession session, string userMessage, CancellationToken ct)
+    // ApprovalPending: message handler — "yes" is now handled by POST /approve, only handle "no"/"change" here
+    private async Task<(string message, string newState)> HandleApprovalPendingMessageAsync(LearningSession session, string userMessage, CancellationToken ct)
     {
         var normalized = userMessage.Trim().ToLowerInvariant();
         var isApproved = normalized.StartsWith("yes") || normalized.Contains("approve") || normalized.Contains("generate") || normalized.Contains("go ahead");
@@ -291,8 +325,7 @@ public class WorkflowEngine : IWorkflowEngine
         {
             session.CurrentState = WorkflowState.ComponentSelectionPending;
             var components = session.SelectedComponents ?? "Overview, Key Concepts, Applications, Examples";
-            var availableComponents = components.Split(',').Select(c => c.Trim()).ToList();
-            var numberedList = string.Join("\n", availableComponents.Select((c, i) => $"{i + 1}. {c}"));
+            var numberedList = string.Join("\n", components.Split(',').Select((c, i) => $"{i + 1}. {c.Trim()}"));
 
             return (
                 "No problem! Let's revisit the component selection.\n\n" +
@@ -303,49 +336,87 @@ public class WorkflowEngine : IWorkflowEngine
             );
         }
 
-        if (!isApproved)
+        if (isApproved)
         {
+            // User typed "yes" in chat — enqueue the job
+            var job = await _jobs.EnqueueAsync(session, ct);
             return (
-                "Please reply with 'yes' to generate the visualization, or 'no' to change your component selection.",
-                WorkflowState.ApprovalPending
+                $"Generation started! Your {session.VisualizationType ?? "diagram"} is being created.\n\n" +
+                $"Job ID: `{job.JobId}`\n\n" +
+                "You'll see progress updates as the visualization is generated.",
+                WorkflowState.GenerationQueued
             );
         }
 
-        VisualizationPlanResult? plan = null;
-        if (!string.IsNullOrEmpty(session.VisualizationPlan))
+        return (
+            "Please reply with **'yes'** to generate the visualization, or **'no'** to change your component selection.",
+            WorkflowState.ApprovalPending
+        );
+    }
+
+    // Called by POST /api/sessions/{id}/approve
+    public async Task<ApproveResponse> ApproveAsync(LearningSession session, CancellationToken ct = default)
+    {
+        if (session.CurrentState != WorkflowState.ApprovalPending)
+            throw new InvalidOperationException($"Session must be in ApprovalPending state to approve. Current: {session.CurrentState}");
+
+        var job = await _jobs.EnqueueAsync(session, ct);
+        return new ApproveResponse(job.JobId, job.Status, session.SessionId);
+    }
+
+    // Called by POST /api/sessions/{id}/refine — returns to component selection after Completed/Generated
+    public async Task<SendMessageResponse> RefineAsync(LearningSession session, CancellationToken ct = default)
+    {
+        if (session.CurrentState is not (WorkflowState.Completed or WorkflowState.Generated or WorkflowState.Failed))
+            throw new InvalidOperationException($"Refine is only available after generation. Current: {session.CurrentState}");
+
+        var previousState = session.CurrentState;
+        session.CurrentState = WorkflowState.ComponentSelectionPending;
+        session.UpdatedDate = DateTimeOffset.UtcNow;
+
+        _db.LearningSessionEvents.Add(new LearningSessionEvent
         {
-            try { plan = JsonSerializer.Deserialize<VisualizationPlanResult>(session.VisualizationPlan); } catch { }
+            SessionId = session.SessionId,
+            PreviousState = previousState,
+            NewState = WorkflowState.ComponentSelectionPending,
+            Trigger = "Refine",
+            EventPayload = JsonSerializer.Serialize(new { previousComponents = session.SelectedComponents })
+        });
+        await _db.SaveChangesAsync(ct);
+
+        var components = session.SelectedComponents ?? "";
+        var numberedList = string.Join("\n", components.Split(',', StringSplitOptions.RemoveEmptyEntries).Select((c, i) => $"{i + 1}. {c.Trim()}"));
+
+        return new SendMessageResponse(
+            "Let's refine your visualization!\n\n" +
+            "**Previous components:**\n" + numberedList + "\n\n" +
+            "Which components would you like to include this time? You can keep the same selection or change it.\n" +
+            "Also specify difficulty (beginner/intermediate/expert) and type (diagram/flowchart/text).",
+            WorkflowState.ComponentSelectionPending,
+            session.SessionId
+        );
+    }
+
+    // Generated/Completed: detect refinement request vs informational message
+    private async Task<(string message, string newState)> HandleRefinementRequestAsync(LearningSession session, string userMessage, CancellationToken ct)
+    {
+        var normalized = userMessage.Trim().ToLowerInvariant();
+        var isRefinement = normalized.Contains("refine") || normalized.Contains("change") ||
+                           normalized.Contains("modify") || normalized.Contains("add more") ||
+                           normalized.Contains("different") || normalized.Contains("again");
+
+        if (isRefinement)
+        {
+            var result = await RefineAsync(session, ct);
+            return (result.Message, result.NewState);
         }
 
-        var vizType = plan?.VisualizationType ?? session.VisualizationType ?? "diagram";
-        var difficulty = plan?.Difficulty ?? session.DifficultyLevel ?? "beginner";
-        var selectedComponents = plan?.Components ?? session.SelectedComponents?.Split(',').Select(c => c.Trim()).ToList() ?? new List<string>();
-
-        var prompt = $"Create a detailed {vizType} visualization explanation for the topic \"{session.Topic}\" at {difficulty} level.\n\n" +
-                     $"Components to visualize: {string.Join(", ", selectedComponents)}\n\n" +
-                     $"Background context: {session.Explanation}\n\n" +
-                     $"Generate a comprehensive, structured {vizType} description that:\n" +
-                     "1. Shows relationships between the components\n" +
-                     $"2. Uses clear labels and descriptions appropriate for {difficulty} level learners\n" +
-                     "3. Explains the flow or structure in detail\n" +
-                     $"4. Provides a text-based representation of the {vizType}\n\n" +
-                     $"Format the output as a detailed text visualization that could be rendered or used as a reference.\n" +
-                     $"Include ASCII art or structured text if appropriate for a {vizType}.";
-
-        var finalOutput = await _ollama.GenerateAsync(prompt, useJsonFormat: false, ct);
-
-        session.FinalOutput = finalOutput;
-        session.CurrentState = WorkflowState.Completed;
-
-        var responseMessage = "**Your Visualization is Ready!**\n\n" +
-                              $"**Topic**: {session.Topic}\n" +
-                              $"**Type**: {vizType} | **Level**: {difficulty}\n\n" +
-                              "---\n\n" +
-                              $"{finalOutput}\n\n" +
-                              "---\n\n" +
-                              "Your learning session is complete! Start a new session to explore another topic.";
-
-        return (responseMessage, WorkflowState.Completed);
+        return (
+            "Your visualization is complete! You can:\n" +
+            "- Say **'refine'** or **'change'** to modify the components and generate a new version\n" +
+            "- Start a **New Session** to explore a different topic",
+            session.CurrentState
+        );
     }
 
     private T? ParseJson<T>(string rawResponse) where T : class
