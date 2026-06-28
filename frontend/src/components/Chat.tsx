@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import {
-  createSession, sendMessage, approveSession, rejectSession,
+  createSession, getSession, sendMessage, approveSession, rejectSession,
   refineSession, getSessionEvents, getJobResult, subscribeJobProgress,
-  getSessionCitations,
+  getSessionCitations, resumeSession, cloneSession, cancelSession,
 } from '../api/client';
 import type { ChatMessage, SessionEvent, JobProgressEvent, JobResult, CitationDto } from '../types';
 import { Message } from './Message';
@@ -10,6 +10,9 @@ import { SessionState } from './SessionState';
 import { MermaidDiagram } from './MermaidDiagram';
 import { JobProgress } from './JobProgress';
 import AlgorithmAnimation from './AlgorithmAnimation';
+import { VideoPlayer } from './VideoPlayer';
+import { AudioPlayer } from './AudioPlayer';
+const GLBViewer = lazy(() => import('./GLBViewer').then(m => ({ default: m.GLBViewer })));
 
 let msgCounter = 0;
 const genId = () => `msg-${++msgCounter}-${Date.now()}`;
@@ -48,8 +51,41 @@ function ThinkingIndicator() {
   );
 }
 
-export function Chat() {
-  const [sessionId, setSessionId] = useState<string | null>(null);
+interface ChatProps {
+  externalSessionId?: string | null;
+  onSessionChange?: (id: string | null) => void;
+}
+
+export function Chat({ externalSessionId, onSessionChange }: ChatProps = {}) {
+  const [sessionId, setSessionIdState] = useState<string | null>(null);
+
+  const setSessionId = (id: string | null) => {
+    setSessionIdState(id);
+    onSessionChange?.(id);
+  };
+
+  // Sync if parent changes the session (e.g. user clicked a history entry)
+  useEffect(() => {
+    if (externalSessionId === undefined || externalSessionId === sessionId) return;
+    setSessionIdState(externalSessionId);
+    // Reset derived state so stale topic/components from previous session don't bleed in
+    setTopic('');
+    setComponents([]);
+    setShowAnimation(false);
+    setJobResult(null);
+    setCitations([]);
+    setComponentSourceStrategy('ai_generated');
+    setSelectedVizType('');
+    if (externalSessionId) {
+      // Load persisted topic + components from API
+      getSession(externalSessionId).then(s => {
+        if (s.topic) setTopic(s.topic);
+        if (s.selectedComponents) setComponents(s.selectedComponents.split(',').map((c: string) => c.trim()));
+        setCurrentState(s.currentState);
+      }).catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalSessionId]);
   const [currentState, setCurrentState] = useState<string>('Created');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -73,6 +109,9 @@ export function Chat() {
   const [showAnimation, setShowAnimation] = useState(false);
   const [topic, setTopic] = useState<string>('');
   const [components, setComponents] = useState<string[]>([]);
+
+  // Output type selector
+  const [selectedVizType, setSelectedVizType] = useState<string>('');
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -109,14 +148,23 @@ export function Chat() {
           if (result.status === 'Completed') {
             const isMermaid = result.outputType === 'mermaid';
             const isText = result.outputType === 'text';
+            const isVideo = result.outputType === 'video';
+            const isAudio = result.outputType === 'audio';
+            const isGlb = result.outputType === 'glb';
             let msg = '**Visualization Generated!**\n\n';
             if (result.fallbackAttempt > 0) {
-              msg += '_A diagram could not be generated. A text explanation has been created instead._\n\n';
+              msg += `_Generated at fallback level ${result.fallbackAttempt} (${result.outputType})._\n\n`;
             }
             if (isText && result.outputContent) {
               msg += result.outputContent;
             } else if (isMermaid) {
               msg += '_Diagram rendered in the output panel →_';
+            } else if (isVideo) {
+              msg += '_Video rendered in the output panel →_';
+            } else if (isAudio) {
+              msg += '_Audio narration rendered in the output panel →_';
+            } else if (isGlb) {
+              msg += '_3D scene rendered in the output panel →_';
             }
             msg += '\n\n---\nSay **"refine"** to modify components, or start a **New Session**.';
             setMessages(prev => [...prev, {
@@ -198,7 +246,7 @@ export function Chat() {
     setIsLoading(true);
     setError(null);
     try {
-      const resp = await approveSession(sessionId);
+      const resp = await approveSession(sessionId, selectedVizType || undefined);
       setCurrentState('GenerationQueued');
       addAssistantMessage(`Generation queued! Your visualization is being created.\n\nJob: \`${resp.jobId}\`\n\nWatch the progress indicator below.`);
       watchJob(resp.jobId);
@@ -231,6 +279,7 @@ export function Chat() {
     setActiveJobId(null);
     setCitations([]);
     setShowAnimation(false);
+    setSelectedVizType('');
     try {
       const resp = await refineSession(sessionId);
       setCurrentState(resp.newState);
@@ -242,12 +291,61 @@ export function Chat() {
     }
   };
 
+  const handleResume = async () => {
+    if (!sessionId) return;
+    setIsLoading(true);
+    try {
+      const resp = await resumeSession(sessionId);
+      setCurrentState(resp.newState);
+      addAssistantMessage(resp.message);
+      if (resp.newState === 'GenerationQueued') {
+        // fetch the new job id from status
+        const status = await (await fetch(`/api/sessions/${sessionId}/status`)).json() as { activeJobs: number };
+        void status; // job will be tracked by SSE when approved next
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to resume');
+    } finally { setIsLoading(false); }
+  };
+
+  const handleClone = async () => {
+    if (!sessionId) return;
+    setIsLoading(true);
+    try {
+      const resp = await cloneSession(sessionId);
+      // Switch to the new session
+      setSessionId(resp.newSessionId);
+      setCurrentState(resp.currentState);
+      setMessages([{
+        id: genId(), role: 'assistant', timestamp: new Date(),
+        content: `Session cloned! Starting fresh from your previous component selection.\n\nSession ID: \`${resp.newSessionId}\``,
+      }]);
+      setCitations([]); setComponentSourceStrategy('ai_generated');
+      setShowAnimation(false); setJobResult(null); setJobProgress(null); setActiveJobId(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to clone session');
+    } finally { setIsLoading(false); }
+  };
+
+  const handleCancel = async () => {
+    if (!sessionId) return;
+    if (!window.confirm('Cancel this session? You can clone it later to restart from your component selection.')) return;
+    setIsLoading(true);
+    try {
+      const resp = await cancelSession(sessionId);
+      setCurrentState(resp.newState);
+      addAssistantMessage('Session cancelled. Use **Clone Session** to start a new one with the same topic and components.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to cancel');
+    } finally { setIsLoading(false); }
+  };
+
   const handleNewSession = async () => {
     if (jobAbortRef.current) { jobAbortRef.current.abort(); jobAbortRef.current = null; }
     setIsInitializing(true);
     setMessages([]); setError(null); setShowEvents(false); setEvents([]);
     setActiveJobId(null); setJobProgress(null); setJobResult(null);
-    setCitations([]); setComponentSourceStrategy('ai_generated'); setShowAnimation(false); setTopic(''); setComponents([]);
+    setCitations([]); setComponentSourceStrategy('ai_generated'); setShowAnimation(false); setTopic(''); setComponents([]); setSelectedVizType('');
     try {
       const session = await createSession();
       setSessionId(session.sessionId);
@@ -270,10 +368,13 @@ export function Chat() {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
-  const isGenerating = ['GenerationQueued', 'Generating', 'FallbackGeneration'].includes(currentState);
+  const isGenerating = ['GenerationQueued', 'Generating', 'FallbackGeneration', 'Retrying'].includes(currentState);
   const isApprovalPending = currentState === 'ApprovalPending';
-  const isCompleted = currentState === 'Completed';
-  const isFailed = currentState === 'Failed';
+  const isCompleted = ['Completed', 'Reviewed'].includes(currentState);
+  const isFailed = ['Failed', 'RetryExhausted'].includes(currentState);
+  const isPaused = currentState === 'Paused';
+  const isCancelled = currentState === 'Cancelled';
+  const isApprovalExpired = currentState === 'ApprovalExpired';
   const hasOutput = jobResult?.status === 'Completed' && (jobResult.outputContent || jobResult.outputUrl);
   const isMermaid = jobResult?.outputType === 'mermaid' && !!jobResult.outputContent;
   const hasKnowledgeBase = componentSourceStrategy === 'knowledge_base' && citations.length > 0;
@@ -313,7 +414,7 @@ export function Chat() {
       <div style={s.header}>
         <div>
           <div style={s.title}>AI Visual Learning Platform</div>
-          <div style={s.subtitle}>Phase 3 — Intelligence & RAG</div>
+          <div style={s.subtitle}>Phase 4 — Resilience & Recovery</div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button style={s.btn} onClick={handleToggleEvents}>{showEvents ? 'Hide Events' : 'Show Events'}</button>
@@ -359,17 +460,94 @@ export function Chat() {
 
           {/* Input area */}
           <div style={s.inputArea}>
-            {/* Approval action buttons */}
+            {/* Approval action buttons + output type selector */}
             {isApprovalPending && (
-              <div style={s.actionRow}>
-                <button style={s.approveBtn} onClick={handleApprove} disabled={isLoading}>✓ Generate Visualization</button>
-                <button style={s.rejectBtn} onClick={handleReject} disabled={isLoading}>✗ Change Components</button>
+              <div style={{ marginBottom: 8 }}>
+                {/* Output type selector */}
+                <div style={{ background: '#0d0d1f', border: '1px solid #1e1e2e', borderRadius: 8, padding: '10px 14px', marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 8 }}>
+                    Output Type <span style={{ color: '#374151', fontWeight: 400, textTransform: 'none' as const }}>(optional — leave blank to auto-select)</span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: '6px' }}>
+                    {[
+                      { value: '', label: '🎲 Auto', desc: 'Let AI pick best type' },
+                      { value: '3d_animation', label: '🧊 3D Scene', desc: 'Interactive 3D GLB' },
+                      { value: 'video', label: '🎬 Video', desc: 'Animated MP4 slides' },
+                      { value: '2d_animation', label: '📊 Diagram', desc: 'Mermaid chart' },
+                      { value: 'narration', label: '🔊 Audio', desc: 'Text-to-speech MP3' },
+                      { value: 'text', label: '📝 Text', desc: 'Structured explanation' },
+                    ].map(opt => {
+                      const active = selectedVizType === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          onClick={() => setSelectedVizType(opt.value)}
+                          style={{
+                            padding: '5px 10px', borderRadius: 6, fontSize: 12, cursor: 'pointer',
+                            border: active ? '1px solid #4f46e5' : '1px solid #2d2d3f',
+                            background: active ? '#312e81' : '#1e1e2e',
+                            color: active ? '#c7d2fe' : '#94a3b8',
+                            display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-start',
+                          }}
+                        >
+                          <span style={{ fontWeight: 600 }}>{opt.label}</span>
+                          <span style={{ fontSize: 10, color: active ? '#818cf8' : '#475569' }}>{opt.desc}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div style={s.actionRow}>
+                  <button style={s.approveBtn} onClick={handleApprove} disabled={isLoading}>✓ Generate Visualization</button>
+                  <button style={s.rejectBtn} onClick={handleReject} disabled={isLoading}>✗ Change Components</button>
+                  <button style={{ ...s.rejectBtn, color: '#f87171' }} onClick={handleCancel} disabled={isLoading}>✕ Cancel</button>
+                </div>
               </div>
             )}
             {/* Refine button after completion */}
             {(isCompleted || isFailed) && (
               <div style={s.actionRow}>
                 <button style={s.refineBtn} onClick={handleRefine} disabled={isLoading}>↺ Refine / Try Again</button>
+                <button style={s.rejectBtn} onClick={handleCancel} disabled={isLoading}>✕ Cancel Session</button>
+              </div>
+            )}
+            {/* Phase 4 — Paused state */}
+            {isPaused && (
+              <div style={{ background: '#1c1917', border: '1px solid #78350f', borderRadius: 8, padding: '10px 14px', marginBottom: 8 }}>
+                <div style={{ color: '#fbbf24', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>⚠ Session Paused</div>
+                <div style={{ color: '#92400e', fontSize: 12, marginBottom: 8 }}>Generation service is unavailable. Your session is saved.</div>
+                <div style={s.actionRow}>
+                  <button style={{ ...s.approveBtn, background: '#92400e' }} onClick={handleResume} disabled={isLoading}>▶ Resume</button>
+                  <button style={s.refineBtn} onClick={handleClone} disabled={isLoading}>⎘ Clone Session</button>
+                  <button style={{ ...s.rejectBtn, color: '#f87171' }} onClick={handleCancel} disabled={isLoading}>✕ Cancel</button>
+                </div>
+              </div>
+            )}
+            {/* Phase 4 — ApprovalExpired state */}
+            {isApprovalExpired && (
+              <div style={{ background: '#1c1917', border: '1px solid #7c3aed', borderRadius: 8, padding: '10px 14px', marginBottom: 8 }}>
+                <div style={{ color: '#a78bfa', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>⏰ Approval Expired</div>
+                <div style={{ color: '#6d28d9', fontSize: 12, marginBottom: 8 }}>Your approval window expired. Resume to continue planning.</div>
+                <div style={s.actionRow}>
+                  <button style={{ ...s.approveBtn, background: '#7c3aed' }} onClick={handleResume} disabled={isLoading}>↩ Resume Planning</button>
+                  <button style={s.refineBtn} onClick={handleClone} disabled={isLoading}>⎘ Clone Session</button>
+                </div>
+              </div>
+            )}
+            {/* Phase 4 — Cancelled state */}
+            {isCancelled && (
+              <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, padding: '10px 14px', marginBottom: 8 }}>
+                <div style={{ color: '#64748b', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>✕ Session Cancelled</div>
+                <div style={s.actionRow}>
+                  <button style={s.refineBtn} onClick={handleClone} disabled={isLoading}>⎘ Clone Session</button>
+                  <button style={s.btn} onClick={handleNewSession} disabled={isLoading}>+ New Session</button>
+                </div>
+              </div>
+            )}
+            {/* Retrying banner */}
+            {currentState === 'Retrying' && (
+              <div style={{ color: '#f59e0b', fontSize: 12, padding: '4px 0', marginBottom: 4 }}>
+                ↻ Retrying generation with backoff...
               </div>
             )}
             <div style={s.inputRow}>
@@ -380,11 +558,15 @@ export function Chat() {
                 onKeyDown={handleKeyDown}
                 placeholder={
                   isGenerating ? 'Generation in progress...' :
+                  currentState === 'Retrying' ? 'Retrying generation...' :
+                  isPaused ? 'Session paused. Use Resume or Clone above.' :
+                  isCancelled ? 'Session cancelled. Clone or start a new session.' :
+                  isApprovalExpired ? 'Approval expired. Use Resume Planning above.' :
                   isApprovalPending ? 'Click "Generate" above, or type "no" to change components...' :
                   isCompleted ? 'Say "refine" to change, or start a New Session...' :
                   'Type your message... (Enter to send)'
                 }
-                disabled={isLoading || isGenerating}
+                disabled={isLoading || isGenerating || isPaused || isCancelled || isApprovalExpired}
                 rows={1}
               />
               <button
@@ -417,8 +599,23 @@ export function Chat() {
               </span>
             </div>
 
-            {/* Diagram or text */}
-            {isMermaid ? (
+            {/* Fallback notice when user-selected type was overridden */}
+            {jobResult!.fallbackAttempt > 0 && selectedVizType && jobResult!.outputType !== selectedVizType && (
+              <div style={{ background: '#1c1917', border: '1px solid #78350f', borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 12, color: '#fbbf24' }}>
+                ⚠ Could not generate <strong>{selectedVizType}</strong> — showing fallback: <strong>{jobResult!.outputType}</strong>
+              </div>
+            )}
+
+            {/* Output viewer — type-specific */}
+            {jobResult!.outputType === 'glb' && jobResult!.outputUrl ? (
+              <Suspense fallback={<div style={{ color: '#64748b', padding: 16 }}>Loading 3D viewer…</div>}>
+                <GLBViewer url={jobResult!.outputUrl} />
+              </Suspense>
+            ) : jobResult!.outputType === 'video' && jobResult!.outputUrl ? (
+              <VideoPlayer url={jobResult!.outputUrl} />
+            ) : jobResult!.outputType === 'audio' && jobResult!.outputUrl ? (
+              <AudioPlayer url={jobResult!.outputUrl} />
+            ) : isMermaid ? (
               <MermaidDiagram code={jobResult!.outputContent!} />
             ) : (
               <div style={{ whiteSpace: 'pre-wrap', fontSize: '13px', color: '#94a3b8', lineHeight: 1.6 }}>

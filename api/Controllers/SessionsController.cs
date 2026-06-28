@@ -34,6 +34,23 @@ public class SessionsController : ControllerBase
         return Ok(new CreateSessionResponse(session.SessionId, session.CurrentState, session.CreatedDate));
     }
 
+    // GET /api/sessions  — list recent sessions for the dev user
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<SessionSummaryDto>>> ListSessions(
+        [FromQuery] int limit = 20, CancellationToken ct = default)
+    {
+        var devUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+        var sessions = await _db.LearningSessions
+            .Where(s => s.UserId == devUserId)
+            .OrderByDescending(s => s.UpdatedDate)
+            .Take(Math.Min(limit, 50))
+            .Select(s => new SessionSummaryDto(
+                s.SessionId, s.CurrentState, s.Topic, s.Domain, s.VisualizationType,
+                s.CreatedDate, s.UpdatedDate))
+            .ToListAsync(ct);
+        return Ok(sessions);
+    }
+
     // GET /api/sessions/{id}
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<SessionDto>> GetSession(Guid id, CancellationToken ct)
@@ -100,7 +117,7 @@ public class SessionsController : ControllerBase
 
     // POST /api/sessions/{id}/approve
     [HttpPost("{id:guid}/approve")]
-    public async Task<ActionResult<ApproveResponse>> Approve(Guid id, CancellationToken ct)
+    public async Task<ActionResult<ApproveResponse>> Approve(Guid id, [FromBody] ApproveRequest? body, CancellationToken ct)
     {
         var session = await _db.LearningSessions.FindAsync(new object[] { id }, ct);
         if (session == null)
@@ -108,6 +125,13 @@ public class SessionsController : ControllerBase
 
         if (session.CurrentState != WorkflowState.ApprovalPending)
             return BadRequest(new { error = $"Session must be in ApprovalPending state. Current: {session.CurrentState}" });
+
+        // Override visualization type if the user selected one from the UI
+        if (!string.IsNullOrWhiteSpace(body?.VisualizationType))
+        {
+            session.VisualizationType = body.VisualizationType;
+            await _db.SaveChangesAsync(ct);
+        }
 
         try
         {
@@ -153,6 +177,68 @@ public class SessionsController : ControllerBase
         {
             return BadRequest(new { error = ex.Message });
         }
+    }
+
+    // POST /api/sessions/{id}/resume  (Phase 4)
+    [HttpPost("{id:guid}/resume")]
+    public async Task<ActionResult<ResumeResponse>> Resume(Guid id, CancellationToken ct)
+    {
+        var session = await _db.LearningSessions.FindAsync(new object[] { id }, ct);
+        if (session == null) return NotFound();
+        try
+        {
+            var response = await _workflow.ResumeAsync(session, ct);
+            return Ok(response);
+        }
+        catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
+    }
+
+    // POST /api/sessions/{id}/clone  (Phase 4)
+    [HttpPost("{id:guid}/clone")]
+    public async Task<ActionResult<CloneResponse>> Clone(Guid id, CancellationToken ct)
+    {
+        var session = await _db.LearningSessions.FindAsync(new object[] { id }, ct);
+        if (session == null) return NotFound();
+        try
+        {
+            var response = await _workflow.CloneAsync(session, ct);
+            return Ok(response);
+        }
+        catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
+    }
+
+    // POST /api/sessions/{id}/cancel  (Phase 4)
+    [HttpPost("{id:guid}/cancel")]
+    public async Task<ActionResult<CancelResponse>> Cancel(Guid id, CancellationToken ct)
+    {
+        var session = await _db.LearningSessions.FindAsync(new object[] { id }, ct);
+        if (session == null) return NotFound();
+        try
+        {
+            var response = await _workflow.CancelAsync(session, ct);
+            return Ok(response);
+        }
+        catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
+    }
+
+    // GET /api/sessions/{id}/status  (Phase 4 — concurrency + review info)
+    [HttpGet("{id:guid}/status")]
+    public async Task<ActionResult<SessionStatusResponse>> GetStatus(Guid id, CancellationToken ct)
+    {
+        var session = await _db.LearningSessions.FindAsync(new object[] { id }, ct);
+        if (session == null) return NotFound();
+
+        var activeJobs = await _db.GenerationJobs
+            .CountAsync(j => j.SessionId == id && j.Status == JobStatus.Processing, ct);
+        var queuedJobs = await _db.GenerationJobs
+            .CountAsync(j => j.SessionId == id && j.Status == JobStatus.Queued, ct);
+        var latestReview = await _db.GenerationJobs
+            .Where(j => j.SessionId == id && j.ReviewSeverity != null)
+            .OrderByDescending(j => j.UpdatedAt)
+            .Select(j => j.ReviewSeverity)
+            .FirstOrDefaultAsync(ct);
+
+        return Ok(new SessionStatusResponse(id, session.CurrentState, activeJobs, queuedJobs, latestReview, session.ExpiresAt));
     }
 
     private static SessionDto MapToDto(LearningSession s) => new(

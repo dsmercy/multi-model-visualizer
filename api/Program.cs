@@ -41,9 +41,16 @@ builder.Services.AddHttpClient<IPythonAiService, PythonAiService>(client =>
 });
 
 // Generation job infrastructure
+// In-process channel: used by RabbitMqConsumerWorker → GenerationWorker, and for retry re-queuing
 var jobQueue = Channel.CreateUnbounded<Guid>(new UnboundedChannelOptions { SingleReader = true });
 builder.Services.AddSingleton(jobQueue);
 builder.Services.AddSingleton<JobProgressHub>();
+
+// RabbitMQ: publish new jobs; consumer bridges RabbitMQ → in-process channel
+builder.Services.AddSingleton<IRabbitMqService, RabbitMqService>();
+builder.Services.AddSingleton<CancelledJobRegistry>();
+builder.Services.AddHostedService<RabbitMqConsumerWorker>();
+
 builder.Services.AddScoped<IGenerationJobService, GenerationJobService>();
 builder.Services.AddHostedService<GenerationWorker>();
 
@@ -57,6 +64,10 @@ builder.Services.AddHttpClient<IKnowledgeService, KnowledgeService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(60);
 });
+
+// Phase 4 services
+builder.Services.AddSingleton<IReviewService, ReviewService>();
+builder.Services.AddHostedService<ApprovalTimeoutService>();
 
 // Workflow engine
 builder.Services.AddScoped<IWorkflowEngine, WorkflowEngine>();

@@ -40,6 +40,25 @@ public class GenerationJob
     [Column("progress")]
     public int Progress { get; set; } = 0;
 
+    // Phase 4
+    [Column("retry_count")]
+    public int RetryCount { get; set; } = 0;
+
+    [Column("next_retry_at")]
+    public DateTimeOffset? NextRetryAt { get; set; }
+
+    [Column("review_status")]
+    public string? ReviewStatus { get; set; }
+
+    [Column("review_severity")]
+    public string? ReviewSeverity { get; set; }
+
+    [Column("review_notes")]
+    public string? ReviewNotes { get; set; }
+
+    [Column("queue_name")]
+    public string QueueName { get; set; } = "generation.diagram";
+
     [Column("created_at")]
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
@@ -56,4 +75,35 @@ public static class JobStatus
     public const string Completed = "Completed";
     public const string Failed = "Failed";
     public const string FallbackGeneration = "FallbackGeneration";
+    // Phase 4
+    public const string Retrying = "Retrying";
+    public const string RetryExhausted = "RetryExhausted";
+    public const string Reviewing = "Reviewing";
+    public const string Reviewed = "Reviewed";
+}
+
+public static class QueueNames
+{
+    public const string ThreeD = "generation.3d";
+    public const string Video = "generation.video";
+    public const string Diagram = "generation.diagram";
+    public const string Text = "generation.text";
+    public const string Fallback = "generation.fallback";
+    public const string Dlq = "generation.dlq";
+
+    public static string ForVisualizationType(string vizType) => vizType switch
+    {
+        "3d" or "3d_animation" => ThreeD,
+        "video" => Video,
+        "text" => Text,
+        "auto" => Fallback,  // auto: use fallback queue, worker starts at level 0
+        _ => Diagram,
+    };
+}
+
+public static class ReviewSeverity
+{
+    public const string Minor = "Minor";
+    public const string Major = "Major";
+    public const string Critical = "Critical";
 }

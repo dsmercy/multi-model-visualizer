@@ -53,6 +53,16 @@ public class LearningSession
     [Column("citations", TypeName = "jsonb")]
     public string? Citations { get; set; }
 
+    // Phase 4
+    [Column("cloned_from_session_id")]
+    public Guid? ClonedFromSessionId { get; set; }
+
+    [Column("expires_at")]
+    public DateTimeOffset? ExpiresAt { get; set; }
+
+    [Column("cancelled_at")]
+    public DateTimeOffset? CancelledAt { get; set; }
+
     [Column("created_date")]
     public DateTimeOffset CreatedDate { get; set; } = DateTimeOffset.UtcNow;
 
@@ -74,6 +84,14 @@ public static class WorkflowState
     public const string ApprovalPending = "ApprovalPending";
     // Phase 3
     public const string KnowledgeRetrieved = "KnowledgeRetrieved";
+    // Phase 4
+    public const string ApprovalExpired = "ApprovalExpired";
+    public const string Retrying = "Retrying";
+    public const string RetryExhausted = "RetryExhausted";
+    public const string Reviewed = "Reviewed";
+    public const string Escalated = "Escalated";
+    public const string Paused = "Paused";
+    public const string Cancelled = "Cancelled";
     // Phase 2
     public const string GenerationQueued = "GenerationQueued";
     public const string Generating = "Generating";

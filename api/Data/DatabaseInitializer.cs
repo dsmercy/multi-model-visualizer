@@ -39,6 +39,17 @@ public class DatabaseInitializer
             ALTER TABLE learning_sessions ADD COLUMN IF NOT EXISTS fast_track BOOLEAN NOT NULL DEFAULT FALSE;
             ALTER TABLE learning_sessions ADD COLUMN IF NOT EXISTS component_source_strategy VARCHAR(50) NOT NULL DEFAULT 'ai_generated';
             ALTER TABLE learning_sessions ADD COLUMN IF NOT EXISTS citations JSONB;
+            ALTER TABLE learning_sessions ADD COLUMN IF NOT EXISTS cloned_from_session_id UUID;
+            ALTER TABLE learning_sessions ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+            ALTER TABLE learning_sessions ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ;
+
+            ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS retry_count INT NOT NULL DEFAULT 0;
+            ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS next_retry_at TIMESTAMPTZ;
+            ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS review_status VARCHAR(50);
+            ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS review_severity VARCHAR(50);
+            ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS review_notes TEXT;
+            ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS queue_name VARCHAR(50) NOT NULL DEFAULT 'generation.diagram';
+            ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS output_content TEXT;
 
             CREATE TABLE IF NOT EXISTS learning_session_events (
               event_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),

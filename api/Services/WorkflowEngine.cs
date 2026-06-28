@@ -12,6 +12,7 @@ public class WorkflowEngine : IWorkflowEngine
     private readonly IOllamaService _ollama;
     private readonly IGenerationJobService _jobs;
     private readonly IKnowledgeService _knowledge;
+    private readonly CancelledJobRegistry _cancelledJobs;
     private readonly IConfiguration _config;
     private readonly ILogger<WorkflowEngine> _logger;
 
@@ -19,12 +20,13 @@ public class WorkflowEngine : IWorkflowEngine
     private double DomainThreshold => _config.GetValue<double>("WorkflowEngine:DomainConfidenceThreshold", 0.70);
     private double RagThreshold => _config.GetValue<double>("WorkflowEngine:RagConfidenceThreshold", 0.65);
 
-    public WorkflowEngine(AppDbContext db, IOllamaService ollama, IGenerationJobService jobs, IKnowledgeService knowledge, IConfiguration config, ILogger<WorkflowEngine> logger)
+    public WorkflowEngine(AppDbContext db, IOllamaService ollama, IGenerationJobService jobs, IKnowledgeService knowledge, CancelledJobRegistry cancelledJobs, IConfiguration config, ILogger<WorkflowEngine> logger)
     {
         _db = db;
         _ollama = ollama;
         _jobs = jobs;
         _knowledge = knowledge;
+        _cancelledJobs = cancelledJobs;
         _config = config;
         _logger = logger;
     }
@@ -43,14 +45,30 @@ public class WorkflowEngine : IWorkflowEngine
             WorkflowState.ComponentSelectionPending => await HandleComponentSelectionAsync(session, userMessage, cancellationToken),
             WorkflowState.VisualizationPlanned => await HandleVisualizationPlannedAsync(session, userMessage, cancellationToken),
             WorkflowState.ApprovalPending => await HandleApprovalPendingMessageAsync(session, userMessage, cancellationToken),
-            WorkflowState.GenerationQueued or WorkflowState.Generating => (
+            WorkflowState.GenerationQueued or WorkflowState.Generating or WorkflowState.Retrying => (
                 "Your visualization is being generated. Please wait for the progress updates.",
                 session.CurrentState
             ),
-            WorkflowState.Generated or WorkflowState.Completed => await HandleRefinementRequestAsync(session, userMessage, cancellationToken),
-            WorkflowState.Failed => (
-                "Generation failed. Please start a new session or use 'refine' to try again.",
-                WorkflowState.Failed
+            WorkflowState.Generated or WorkflowState.Completed or WorkflowState.Reviewed => await HandleRefinementRequestAsync(session, userMessage, cancellationToken),
+            WorkflowState.Failed or WorkflowState.RetryExhausted => (
+                "Generation failed after multiple attempts. Use 'refine' to try again or start a new session.",
+                session.CurrentState
+            ),
+            WorkflowState.Paused => (
+                "Your session is paused because the generation service is temporarily unavailable. Use the Resume button when the service recovers.",
+                WorkflowState.Paused
+            ),
+            WorkflowState.ApprovalExpired => (
+                "Your approval window expired. Use **Resume Planning** to pick up where you left off, or start a new session.",
+                WorkflowState.ApprovalExpired
+            ),
+            WorkflowState.Cancelled => (
+                "This session has been cancelled. Use **Clone Session** to start a new one with the same topic.",
+                WorkflowState.Cancelled
+            ),
+            WorkflowState.Escalated => (
+                "This session has been escalated. It will be paused until the issue is resolved.",
+                WorkflowState.Paused
             ),
             _ => throw new InvalidOperationException($"Unknown workflow state: {session.CurrentState}")
         };
@@ -501,6 +519,116 @@ public class WorkflowEngine : IWorkflowEngine
             "- Start a **New Session** to explore a different topic",
             session.CurrentState
         );
+    }
+
+    // Phase 4 — Resume: Paused/ApprovalExpired → VisualizationPlanned or GenerationQueued
+    public async Task<ResumeResponse> ResumeAsync(LearningSession session, CancellationToken ct = default)
+    {
+        if (session.CurrentState is not (WorkflowState.Paused or WorkflowState.ApprovalExpired or WorkflowState.Escalated))
+            throw new InvalidOperationException($"Resume is only available from Paused/ApprovalExpired/Escalated. Current: {session.CurrentState}");
+
+        var targetState = session.CurrentState == WorkflowState.Paused
+            ? WorkflowState.GenerationQueued
+            : WorkflowState.VisualizationPlanned;
+
+        var prev = session.CurrentState;
+        session.CurrentState = targetState;
+        session.ExpiresAt = null;
+        session.UpdatedDate = DateTimeOffset.UtcNow;
+
+        _db.LearningSessionEvents.Add(new LearningSessionEvent
+        {
+            SessionId = session.SessionId,
+            PreviousState = prev,
+            NewState = targetState,
+            Trigger = "UserResume",
+            EventPayload = JsonSerializer.Serialize(new { resumedAt = DateTimeOffset.UtcNow })
+        });
+
+        string message;
+        if (targetState == WorkflowState.GenerationQueued)
+        {
+            var job = await _jobs.EnqueueAsync(session, ct);
+            message = $"Session resumed! Your visualization is being re-generated.\nJob: `{job.JobId}`";
+        }
+        else
+        {
+            await _db.SaveChangesAsync(ct);
+            message = "Session resumed! Review your visualization plan and approve to generate.";
+        }
+
+        return new ResumeResponse(session.SessionId, targetState, message);
+    }
+
+    // Phase 4 — Clone: Cancelled/Paused → new session at ComponentSelectionPending
+    public async Task<CloneResponse> CloneAsync(LearningSession session, CancellationToken ct = default)
+    {
+        if (session.CurrentState is not (WorkflowState.Cancelled or WorkflowState.Paused or WorkflowState.Failed))
+            throw new InvalidOperationException($"Clone is only available from Cancelled/Paused/Failed. Current: {session.CurrentState}");
+
+        var newSession = new LearningSession
+        {
+            UserId = session.UserId,
+            Topic = session.Topic,
+            Intent = session.Intent,
+            Domain = session.Domain,
+            SelectedComponents = session.SelectedComponents,
+            DifficultyLevel = session.DifficultyLevel,
+            VisualizationType = session.VisualizationType,
+            Explanation = session.Explanation,
+            CurrentState = WorkflowState.ComponentSelectionPending,
+            ClonedFromSessionId = session.SessionId,
+        };
+        _db.LearningSessions.Add(newSession);
+
+        _db.LearningSessionEvents.Add(new LearningSessionEvent
+        {
+            SessionId = newSession.SessionId,
+            PreviousState = null,
+            NewState = WorkflowState.ComponentSelectionPending,
+            Trigger = "ClonedSession",
+            EventPayload = JsonSerializer.Serialize(new { clonedFromSessionId = session.SessionId, topic = session.Topic })
+        });
+
+        await _db.SaveChangesAsync(ct);
+        return new CloneResponse(newSession.SessionId, session.SessionId, newSession.CurrentState);
+    }
+
+    // Phase 4 — Cancel
+    public async Task<CancelResponse> CancelAsync(LearningSession session, CancellationToken ct = default)
+    {
+        if (session.CurrentState == WorkflowState.Cancelled)
+            throw new InvalidOperationException("Session is already cancelled.");
+
+        // Register any queued jobs so RabbitMqConsumerWorker skips them on dequeue
+        var queuedJobs = await _db.GenerationJobs
+            .Where(j => j.SessionId == session.SessionId && j.Status == JobStatus.Queued)
+            .ToListAsync(ct);
+        foreach (var job in queuedJobs)
+        {
+            _cancelledJobs.Add(job.JobId);
+            job.Status = JobStatus.Failed;
+            job.ErrorCode = "Cancelled";
+            job.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+
+        var prev = session.CurrentState;
+        var now = DateTimeOffset.UtcNow;
+        session.CurrentState = WorkflowState.Cancelled;
+        session.CancelledAt = now;
+        session.UpdatedDate = now;
+
+        _db.LearningSessionEvents.Add(new LearningSessionEvent
+        {
+            SessionId = session.SessionId,
+            PreviousState = prev,
+            NewState = WorkflowState.Cancelled,
+            Trigger = "UserCancel",
+            EventPayload = JsonSerializer.Serialize(new { cancelledAt = now, queuedJobsCancelled = queuedJobs.Count })
+        });
+        await _db.SaveChangesAsync(ct);
+
+        return new CancelResponse(session.SessionId, WorkflowState.Cancelled, now);
     }
 
     private T? ParseJson<T>(string rawResponse) where T : class

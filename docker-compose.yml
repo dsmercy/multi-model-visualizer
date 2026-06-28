@@ -1,0 +1,248 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# AI Visual Learning Platform — Docker Compose
+#
+# DEV MODE (current): only infrastructure services run here.
+# The API, Python AI service, and frontend are run locally:
+#   API          →  cd api && dotnet run --urls http://localhost:5000
+#   Python AI    →  cd python-ai-service && uvicorn main:app --port 8000
+#   Frontend     →  cd frontend && npm run dev
+#
+# PRODUCTION (future): uncomment the api, python-ai, and frontend service
+# blocks at the bottom of this file.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── PostgreSQL ───────────────────────────────────────────────────────────────
+  # Already running locally — keep this here so the compose file is self-contained.
+  # If you already have postgres running on 5432, comment this block out.
+
+  # postgres:
+  #   image: postgres:16-alpine
+  #   container_name: visuallearning-postgres
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_DB: visuallearning
+  #     POSTGRES_USER: assistant
+  #     POSTGRES_PASSWORD: change_this_password_in_production
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U assistant -d visuallearning"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+  # ── Qdrant ───────────────────────────────────────────────────────────────────
+  # Already running locally — keep for reference.
+  # If already running on 6333/6334, comment this block out.
+
+  # qdrant:
+  #   image: qdrant/qdrant:latest
+  #   container_name: visuallearning-qdrant
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6333:6333"   # REST + dashboard  →  http://localhost:6333/dashboard
+  #     - "6334:6334"   # gRPC (used by .NET Qdrant.Client)
+  #   volumes:
+  #     - qdrantdata:/qdrant/storage
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -sf http://localhost:6333/readyz || exit 1"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+  # ── RabbitMQ ─────────────────────────────────────────────────────────────────
+  # New dependency for Phase 4. Start with: docker compose up -d rabbitmq
+  # Management UI  →  http://localhost:15672  (dev / dev)
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: visuallearning-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: dev
+      RABBITMQ_DEFAULT_PASS: dev
+    ports:
+      - "5672:5672"    # AMQP
+      - "15672:15672"  # Management UI
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ── Ollama ───────────────────────────────────────────────────────────────────
+  # Already running locally. Comment out if you run Ollama natively.
+  # After first start, pull models:
+  #   docker exec visuallearning-ollama ollama pull gemma3:4b
+  #   docker exec visuallearning-ollama ollama pull qwen2.5-coder:7b
+  #   docker exec visuallearning-ollama ollama pull nomic-embed-text
+
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: visuallearning-ollama
+  #   restart: unless-stopped
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollamadata:/root/.ollama
+  #   # GPU support — uncomment if you have an NVIDIA GPU + nvidia-container-toolkit
+  #   # deploy:
+  #   #   resources:
+  #   #     reservations:
+  #   #       devices:
+  #   #         - driver: nvidia
+  #   #           count: 1
+  #   #           capabilities: [gpu]
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -sf http://localhost:11434/ || exit 1"]
+  #     interval: 15s
+  #     timeout: 10s
+  #     retries: 5
+
+  # ── Piper TTS ────────────────────────────────────────────────────────────────
+  # New dependency for Phase 4 narration.
+  # After first start, download the voice model:
+  #   docker exec visuallearning-piper piper --download-dir /data en_US-lessac-medium
+
+  piper:
+    image: rhasspy/wyoming-piper:latest
+    container_name: visuallearning-piper
+    restart: unless-stopped
+    ports:
+      - "10200:10200"
+    volumes:
+      - piperdata:/data
+    command: >
+      --voice en_US-lessac-medium
+      --data-dir /data
+      --download-dir /data
+
+  # ── ffmpeg (video generation) ────────────────────────────────────────────────
+  # Runs as a persistent sidecar; the Python AI service calls it via HTTP on port 8080.
+  # Endpoint: POST /run  body: { args: [...ffmpeg args...] }
+  # We use linuxserver/ffmpeg which accepts commands via environment/entrypoint.
+  # Actually used via `docker run --rm` one-shot — this entry just pre-pulls the image.
+  ffmpeg:
+    image: linuxserver/ffmpeg:latest
+    container_name: visuallearning-ffmpeg
+    entrypoint: ["tail", "-f", "/dev/null"]   # keep container alive for exec
+    restart: unless-stopped
+    volumes:
+      - ffmpegoutput:/out
+
+  # ── Blender (headless 3D rendering) ─────────────────────────────────────────
+  # New dependency for Phase 4 3D generation.
+  # Invoked headlessly by the Python AI service via subprocess.
+  # The python-ai service shares the /output volume to pick up rendered GLB files.
+
+  blender:
+    image: linuxserver/blender:latest
+    container_name: visuallearning-blender
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+    ports:
+      - "3010:3010"   # noVNC web UI (optional, for render debugging)
+    volumes:
+      - blenderdata:/config
+      - blenderoutput:/output
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PRODUCTION SERVICES — uncomment when ready to containerise the application
+# ─────────────────────────────────────────────────────────────────────────────
+
+  # python-ai:
+  #   build:
+  #     context: ./python-ai-service
+  #     dockerfile: Dockerfile
+  #   container_name: visuallearning-python-ai
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     OLLAMA_URL: http://ollama:11434
+  #     RABBITMQ_URL: amqp://dev:dev@rabbitmq:5672/
+  #     BLENDER_OUTPUT_DIR: /output
+  #     PIPER_URL: http://piper:10200
+  #   volumes:
+  #     - blenderoutput:/output
+  #   depends_on:
+  #     ollama:
+  #       condition: service_healthy
+  #     rabbitmq:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+  #     interval: 15s
+  #     timeout: 10s
+  #     retries: 5
+
+  # api:
+  #   build:
+  #     context: ./api
+  #     dockerfile: Dockerfile
+  #   container_name: visuallearning-api
+  #   restart: unless-stopped
+  #   ports:
+  #     - "5000:5000"
+  #   environment:
+  #     ASPNETCORE_ENVIRONMENT: Production
+  #     ASPNETCORE_URLS: http://+:5000
+  #     ConnectionStrings__PostgreSQL: "Host=postgres;Port=5432;Database=visuallearning;Username=assistant;Password=change_this_password_in_production"
+  #     AI__OllamaBaseUrl: http://ollama:11434
+  #     AI__OllamaModel: gemma3:4b
+  #     AI__FallbackOllamaModel: qwen2.5-coder:7b
+  #     WorkflowEngine__MaxRetryAttempts: "3"
+  #     WorkflowEngine__RetryBackoffSeconds__0: "5"
+  #     WorkflowEngine__RetryBackoffSeconds__1: "15"
+  #     WorkflowEngine__RetryBackoffSeconds__2: "45"
+  #     WorkflowEngine__ApprovalTimeoutHours: "24"
+  #     WorkflowEngine__PausedSessionTimeoutDays: "7"
+  #     WorkflowEngine__RagConfidenceThreshold: "0.65"
+  #     Qdrant__Host: qdrant
+  #     Qdrant__Port: "6334"
+  #     PythonService__BaseUrl: http://python-ai:8000
+  #     RabbitMQ__Host: rabbitmq
+  #     RabbitMQ__Port: "5672"
+  #     RabbitMQ__Username: dev
+  #     RabbitMQ__Password: dev
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     qdrant:
+  #       condition: service_healthy
+  #     rabbitmq:
+  #       condition: service_healthy
+  #     python-ai:
+  #       condition: service_healthy
+
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: visuallearning-frontend
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3000:80"
+  #   depends_on:
+  #     - api
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+
+volumes:
+  pgdata:
+  qdrantdata:
+  rabbitmqdata:
+  ollamadata:
+  piperdata:
+  blenderoutput:
+  blenderdata:
+  ffmpegoutput:

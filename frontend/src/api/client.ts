@@ -1,7 +1,8 @@
 import type {
   CreateSessionResponse, SendMessageResponse, Session,
   SessionEvent, ApproveResponse, JobResult, JobProgressEvent,
-  SessionCitationsResponse,
+  SessionCitationsResponse, ResumeResponse, CloneResponse, CancelResponse, SessionStatusResponse,
+  SessionSummary,
 } from '../types';
 
 const BASE = '/api';
@@ -30,8 +31,11 @@ export const sendMessage = (id: string, content: string) =>
     body: JSON.stringify({ content }),
   });
 
-export const approveSession = (id: string) =>
-  req<ApproveResponse>(`/sessions/${id}/approve`, { method: 'POST' });
+export const approveSession = (id: string, vizType?: string) =>
+  req<ApproveResponse>(`/sessions/${id}/approve`, {
+    method: 'POST',
+    body: JSON.stringify({ visualizationType: vizType ?? null }),
+  });
 
 export const rejectSession = (id: string) =>
   req<SendMessageResponse>(`/sessions/${id}/reject`, { method: 'POST' });
@@ -47,6 +51,19 @@ export const getJobResult = (jobId: string) =>
 
 export const getSessionCitations = (id: string) =>
   req<SessionCitationsResponse>(`/sessions/${id}/citations`);
+
+export const getSessions = (limit = 20) =>
+  req<SessionSummary[]>(`/sessions?limit=${limit}`);
+
+// Phase 4
+export const resumeSession = (id: string) =>
+  req<ResumeResponse>(`/sessions/${id}/resume`, { method: 'POST' });
+export const cloneSession = (id: string) =>
+  req<CloneResponse>(`/sessions/${id}/clone`, { method: 'POST' });
+export const cancelSession = (id: string) =>
+  req<CancelResponse>(`/sessions/${id}/cancel`, { method: 'POST' });
+export const getSessionStatus = (id: string) =>
+  req<SessionStatusResponse>(`/sessions/${id}/status`);
 
 export function subscribeJobProgress(
   jobId: string,

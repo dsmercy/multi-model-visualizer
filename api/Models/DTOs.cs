@@ -48,6 +48,7 @@ public record HealthResponse(
 );
 
 // Phase 2 DTOs
+public record ApproveRequest(string? VisualizationType = null);
 public record ApproveResponse(Guid JobId, string Status, Guid SessionId);
 
 public record JobProgressEvent(Guid JobId, string Status, int Progress, string? OutputType = null, string? OutputUrl = null, string? ErrorCode = null);
@@ -98,6 +99,29 @@ public record PythonGenerationResult(
 public record PythonGenerationMetadata(
     List<string>? ComponentsCovered,
     double GenerationDurationSeconds
+);
+
+// Phase 4 DTOs
+public record ResumeResponse(Guid SessionId, string NewState, string Message);
+public record CloneResponse(Guid NewSessionId, Guid ClonedFromSessionId, string CurrentState);
+public record CancelResponse(Guid SessionId, string NewState, DateTimeOffset CancelledAt);
+public record SessionStatusResponse(
+    Guid SessionId,
+    string CurrentState,
+    int ActiveJobs,
+    int QueuedJobs,
+    string? ReviewSeverity,
+    DateTimeOffset? ExpiresAt
+);
+
+public record SessionSummaryDto(
+    Guid SessionId,
+    string CurrentState,
+    string? Topic,
+    string? Domain,
+    string? VisualizationType,
+    DateTimeOffset CreatedDate,
+    DateTimeOffset UpdatedDate
 );
 
 // Phase 3 DTOs

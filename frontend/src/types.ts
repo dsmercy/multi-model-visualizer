@@ -89,6 +89,24 @@ export interface SessionCitationsResponse {
   citations: CitationDto[];
 }
 
+export interface SessionSummary {
+  sessionId: string;
+  currentState: string;
+  topic: string | null;
+  domain: string | null;
+  visualizationType: string | null;
+  createdDate: string;
+  updatedDate: string;
+}
+
+export interface ResumeResponse { sessionId: string; newState: string; message: string; }
+export interface CloneResponse { newSessionId: string; clonedFromSessionId: string; currentState: string; }
+export interface CancelResponse { sessionId: string; newState: string; cancelledAt: string; }
+export interface SessionStatusResponse {
+  sessionId: string; currentState: string; activeJobs: number;
+  queuedJobs: number; reviewSeverity: string | null; expiresAt: string | null;
+}
+
 export const WORKFLOW_STATES = [
   'Created',
   'IntentAnalyzed',
@@ -104,6 +122,14 @@ export const WORKFLOW_STATES = [
   'Failed',
   'FallbackGeneration',
   'Completed',
+  // Phase 4
+  'Retrying',
+  'RetryExhausted',
+  'Reviewed',
+  'Escalated',
+  'Paused',
+  'Cancelled',
+  'ApprovalExpired',
 ] as const;
 
 export type WorkflowState = typeof WORKFLOW_STATES[number];

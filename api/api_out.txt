@@ -10,6 +10,69 @@ dbug: Microsoft.Extensions.Hosting.Internal.Host[1]
       Hosting starting
 info: MultiModelVisualizer.Api.Services.GenerationWorker[0]
       GenerationWorker started.
+info: MultiModelVisualizer.Api.Services.ApprovalTimeoutService[0]
+      ApprovalTimeoutService started (interval: 00:05:00)
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10401]
+      An 'IServiceProvider' was created for internal use by Entity Framework.
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10403]
+      Entity Framework Core 8.0.4 initialized 'AppDbContext' using provider 'Npgsql.EntityFrameworkCore.PostgreSQL:8.0.4+51faf6e9c9c7ef99c3e98d98a96adb8fa8ae4553' with options: None
+dbug: Microsoft.EntityFrameworkCore.Query[10111]
+      Compiling query expression: 
+      'DbSet<LearningSession>()
+          .Where(s => s.CurrentState == "ApprovalPending" && s.UpdatedDate < __approvalCutoff_0)'
+dbug: Microsoft.EntityFrameworkCore.Query[10107]
+      Generated query execution expression: 
+      'queryContext => new SingleQueryingEnumerable<LearningSession>(
+          (RelationalQueryContext)queryContext, 
+          RelationalCommandCache.QueryExpression(
+              Projection Mapping:
+                  EmptyProjectionMember -> Dictionary<IProperty, int> { [Property: LearningSession.SessionId (Guid) Required PK AfterSave:Throw ValueGenerated.OnAdd, 0], [Property: LearningSession.CancelledAt (DateTimeOffset?), 1], [Property: LearningSession.Citations (string), 2], [Property: LearningSession.ClonedFromSessionId (Guid?), 3], [Property: LearningSession.ComponentSourceStrategy (string) Required, 4], [Property: LearningSession.CreatedDate (DateTimeOffset) Required ValueGenerated.OnAdd, 5], [Property: LearningSession.CurrentState (string) Required ValueGenerated.OnAdd, 6], [Property: LearningSession.DifficultyLevel (string), 7], [Property: LearningSession.Domain (string), 8], [Property: LearningSession.ExpiresAt (DateTimeOffset?), 9], [Property: LearningSession.Explanation (string), 10], [Property: LearningSession.FastTrack (bool) Required, 11], [Property: LearningSession.FinalOutput (string), 12], [Property: LearningSession.Intent (string), 13], [Property: LearningSession.SelectedComponents (string), 14], [Property: LearningSession.Topic (string), 15], [Property: LearningSession.UpdatedDate (DateTimeOffset) Required ValueGenerated.OnAdd, 16], [Property: LearningSession.UserId (Guid) Required ValueGenerated.OnAdd, 17], [Property: LearningSession.VisualizationPlan (string), 18], [Property: LearningSession.VisualizationType (string), 19] }
+              SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+              FROM learning_sessions AS l
+              WHERE (l.current_state == 'ApprovalPending') && (l.updated_date < @__approvalCutoff_0)), 
+          null, 
+          Func<QueryContext, DbDataReader, ResultContext, SingleQueryResultCoordinator, LearningSession>, 
+          MultiModelVisualizer.Api.Data.AppDbContext, 
+          False, 
+          False, 
+          True
+      )'
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20005]
+      Creating DbConnection.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20006]
+      Created DbConnection. (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (1ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (4ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__approvalCutoff_0='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.current_state = 'ApprovalPending' AND l.updated_date < @__approvalCutoff_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (18ms) [Parameters=[@__approvalCutoff_0='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.current_state = 'ApprovalPending' AND l.updated_date < @__approvalCutoff_0
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'visuallearning' on server 'tcp://localhost:5432' is being disposed after spending 2ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Query[10111]
+      Compiling query expression: 
+      'DbSet<LearningSession>()
+          .Where(s => s.CurrentState == "Paused" && s.UpdatedDate < __pausedCutoff_0)'
 info: Microsoft.Hosting.Lifetime[14]
       Now listening on: http://localhost:5000
 info: Microsoft.Hosting.Lifetime[0]
@@ -20,21 +83,1230 @@ info: Microsoft.Hosting.Lifetime[0]
       Content root path: C:\Projects\AI Projects\multi-model-visualizer\api
 dbug: Microsoft.Extensions.Hosting.Internal.Host[2]
       Hosting started
+dbug: Microsoft.EntityFrameworkCore.Query[10107]
+      Generated query execution expression: 
+      'queryContext => new SingleQueryingEnumerable<LearningSession>(
+          (RelationalQueryContext)queryContext, 
+          RelationalCommandCache.QueryExpression(
+              Projection Mapping:
+                  EmptyProjectionMember -> Dictionary<IProperty, int> { [Property: LearningSession.SessionId (Guid) Required PK AfterSave:Throw ValueGenerated.OnAdd, 0], [Property: LearningSession.CancelledAt (DateTimeOffset?), 1], [Property: LearningSession.Citations (string), 2], [Property: LearningSession.ClonedFromSessionId (Guid?), 3], [Property: LearningSession.ComponentSourceStrategy (string) Required, 4], [Property: LearningSession.CreatedDate (DateTimeOffset) Required ValueGenerated.OnAdd, 5], [Property: LearningSession.CurrentState (string) Required ValueGenerated.OnAdd, 6], [Property: LearningSession.DifficultyLevel (string), 7], [Property: LearningSession.Domain (string), 8], [Property: LearningSession.ExpiresAt (DateTimeOffset?), 9], [Property: LearningSession.Explanation (string), 10], [Property: LearningSession.FastTrack (bool) Required, 11], [Property: LearningSession.FinalOutput (string), 12], [Property: LearningSession.Intent (string), 13], [Property: LearningSession.SelectedComponents (string), 14], [Property: LearningSession.Topic (string), 15], [Property: LearningSession.UpdatedDate (DateTimeOffset) Required ValueGenerated.OnAdd, 16], [Property: LearningSession.UserId (Guid) Required ValueGenerated.OnAdd, 17], [Property: LearningSession.VisualizationPlan (string), 18], [Property: LearningSession.VisualizationType (string), 19] }
+              SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+              FROM learning_sessions AS l
+              WHERE (l.current_state == 'Paused') && (l.updated_date < @__pausedCutoff_0)), 
+          null, 
+          Func<QueryContext, DbDataReader, ResultContext, SingleQueryResultCoordinator, LearningSession>, 
+          MultiModelVisualizer.Api.Data.AppDbContext, 
+          False, 
+          False, 
+          True
+      )'
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__pausedCutoff_0='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.current_state = 'Paused' AND l.updated_date < @__pausedCutoff_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__pausedCutoff_0='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.current_state = 'Paused' AND l.updated_date < @__pausedCutoff_0
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'visuallearning' on server 'tcp://localhost:5432' is being disposed after spending 0ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10407]
+      'AppDbContext' disposed.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20007]
+      Disposing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20008]
+      Disposed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
 info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
-      Request starting HTTP/1.1 GET http://localhost:5000/api/admin/knowledge/status - - -
+      Request starting HTTP/1.1 POST http://localhost:5000/api/sessions - application/x-www-form-urlencoded 0
 info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
-      Executing endpoint 'MultiModelVisualizer.Api.Controllers.KnowledgeController.Status (MultiModelVisualizer.Api)'
+      Executing endpoint 'MultiModelVisualizer.Api.Controllers.SessionsController.CreateSession (MultiModelVisualizer.Api)'
 info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[102]
-      Route matched with {action = "Status", controller = "Knowledge"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.ActionResult`1[MultiModelVisualizer.Api.Models.KnowledgeStatusResponse]] Status(System.Threading.CancellationToken) on controller MultiModelVisualizer.Api.Controllers.KnowledgeController (MultiModelVisualizer.Api).
-dbug: Microsoft.EntityFrameworkCore.Infrastructure[10401]
-      An 'IServiceProvider' was created for internal use by Entity Framework.
-info: MultiModelVisualizer.Api.Services.KnowledgeService[0]
-      Created Qdrant collection 'knowledge'
+      Route matched with {action = "CreateSession", controller = "Sessions"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.ActionResult`1[MultiModelVisualizer.Api.Models.CreateSessionResponse]] CreateSession(System.Threading.CancellationToken) on controller MultiModelVisualizer.Api.Controllers.SessionsController (MultiModelVisualizer.Api).
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10403]
+      Entity Framework Core 8.0.4 initialized 'AppDbContext' using provider 'Npgsql.EntityFrameworkCore.PostgreSQL:8.0.4+51faf6e9c9c7ef99c3e98d98a96adb8fa8ae4553' with options: None
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'LearningSession' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.Update[10004]
+      SaveChanges starting for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10800]
+      DetectChanges starting for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10801]
+      DetectChanges completed for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20005]
+      Creating DbConnection.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20006]
+      Created DbConnection. (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@p0='?' (DbType = Guid), @p1='?' (DbType = DateTime), @p2='?' (DbType = Object), @p3='?' (DbType = Guid), @p4='?', @p5='?' (DbType = DateTime), @p6='?', @p7='?', @p8='?', @p9='?' (DbType = DateTime), @p10='?', @p11='?' (DbType = Boolean), @p12='?', @p13='?', @p14='?', @p15='?', @p16='?' (DbType = DateTime), @p17='?' (DbType = Guid), @p18='?' (DbType = Object), @p19='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO learning_sessions (session_id, cancelled_at, citations, cloned_from_session_id, component_source_strategy, created_date, current_state, difficulty_level, domain, expires_at, explanation, fast_track, final_output, intent, selected_components, topic, updated_date, user_id, visualization_plan, visualization_type)
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16, @p17, @p18, @p19);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (DbType = DateTime), @p2='?' (DbType = Object), @p3='?' (DbType = Guid), @p4='?', @p5='?' (DbType = DateTime), @p6='?', @p7='?', @p8='?', @p9='?' (DbType = DateTime), @p10='?', @p11='?' (DbType = Boolean), @p12='?', @p13='?', @p14='?', @p15='?', @p16='?' (DbType = DateTime), @p17='?' (DbType = Guid), @p18='?' (DbType = Object), @p19='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO learning_sessions (session_id, cancelled_at, citations, cloned_from_session_id, component_source_strategy, created_date, current_state, difficulty_level, domain, expires_at, explanation, fast_track, final_output, intent, selected_components, topic, updated_date, user_id, visualization_plan, visualization_type)
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16, @p17, @p18, @p19);
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'visuallearning' on server 'tcp://localhost:5432' is being disposed after spending 1ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10807]
+      An entity of type 'LearningSession' tracked by 'AppDbContext' changed state from 'Added' to 'Unchanged'. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.Update[10005]
+      SaveChanges completed for 'AppDbContext' with 1 entities written to the database.
+info: MultiModelVisualizer.Api.Controllers.SessionsController[0]
+      Created new session 0d09b334-0a42-409a-b713-b31d1ced36fc
 info: Microsoft.AspNetCore.Mvc.Infrastructure.ObjectResultExecutor[1]
-      Executing OkObjectResult, writing value of type 'MultiModelVisualizer.Api.Models.KnowledgeStatusResponse'.
+      Executing OkObjectResult, writing value of type 'MultiModelVisualizer.Api.Models.CreateSessionResponse'.
 info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[105]
-      Executed action MultiModelVisualizer.Api.Controllers.KnowledgeController.Status (MultiModelVisualizer.Api) in 269.5471ms
+      Executed action MultiModelVisualizer.Api.Controllers.SessionsController.CreateSession (MultiModelVisualizer.Api) in 132.6088ms
 info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
-      Executed endpoint 'MultiModelVisualizer.Api.Controllers.KnowledgeController.Status (MultiModelVisualizer.Api)'
+      Executed endpoint 'MultiModelVisualizer.Api.Controllers.SessionsController.CreateSession (MultiModelVisualizer.Api)'
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10407]
+      'AppDbContext' disposed.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20007]
+      Disposing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20008]
+      Disposed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
 info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
-      Request finished HTTP/1.1 GET http://localhost:5000/api/admin/knowledge/status - 200 - application/json;+charset=utf-8 296.7970ms
+      Request finished HTTP/1.1 POST http://localhost:5000/api/sessions - 200 - application/json;+charset=utf-8 155.1891ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost:5000/api/sessions/0d09b334-0a42-409a-b713-b31d1ced36fc/status - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'MultiModelVisualizer.Api.Controllers.SessionsController.GetStatus (MultiModelVisualizer.Api)'
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[102]
+      Route matched with {action = "GetStatus", controller = "Sessions"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.ActionResult`1[MultiModelVisualizer.Api.Models.SessionStatusResponse]] GetStatus(System.Guid, System.Threading.CancellationToken) on controller MultiModelVisualizer.Api.Controllers.SessionsController (MultiModelVisualizer.Api).
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10403]
+      Entity Framework Core 8.0.4 initialized 'AppDbContext' using provider 'Npgsql.EntityFrameworkCore.PostgreSQL:8.0.4+51faf6e9c9c7ef99c3e98d98a96adb8fa8ae4553' with options: None
+dbug: Microsoft.EntityFrameworkCore.Query[10111]
+      Compiling query expression: 
+      'DbSet<LearningSession>()
+          .FirstOrDefault(e => object.Equals(
+              objA: EF.Property<object>(e, "SessionId"), 
+              objB: __get_Item_0))'
+dbug: Microsoft.EntityFrameworkCore.Query[10107]
+      Generated query execution expression: 
+      'queryContext => ShapedQueryCompilingExpressionVisitor.SingleOrDefaultAsync<LearningSession>(
+          asyncEnumerable: new SingleQueryingEnumerable<LearningSession>(
+              (RelationalQueryContext)queryContext, 
+              RelationalCommandCache.QueryExpression(
+                  Projection Mapping:
+                      EmptyProjectionMember -> Dictionary<IProperty, int> { [Property: LearningSession.SessionId (Guid) Required PK AfterSave:Throw ValueGenerated.OnAdd, 0], [Property: LearningSession.CancelledAt (DateTimeOffset?), 1], [Property: LearningSession.Citations (string), 2], [Property: LearningSession.ClonedFromSessionId (Guid?), 3], [Property: LearningSession.ComponentSourceStrategy (string) Required, 4], [Property: LearningSession.CreatedDate (DateTimeOffset) Required ValueGenerated.OnAdd, 5], [Property: LearningSession.CurrentState (string) Required ValueGenerated.OnAdd, 6], [Property: LearningSession.DifficultyLevel (string), 7], [Property: LearningSession.Domain (string), 8], [Property: LearningSession.ExpiresAt (DateTimeOffset?), 9], [Property: LearningSession.Explanation (string), 10], [Property: LearningSession.FastTrack (bool) Required, 11], [Property: LearningSession.FinalOutput (string), 12], [Property: LearningSession.Intent (string), 13], [Property: LearningSession.SelectedComponents (string), 14], [Property: LearningSession.Topic (string), 15], [Property: LearningSession.UpdatedDate (DateTimeOffset) Required ValueGenerated.OnAdd, 16], [Property: LearningSession.UserId (Guid) Required ValueGenerated.OnAdd, 17], [Property: LearningSession.VisualizationPlan (string), 18], [Property: LearningSession.VisualizationType (string), 19] }
+                  SELECT TOP(1) l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+                  FROM learning_sessions AS l
+                  WHERE l.session_id == @__get_Item_0), 
+              null, 
+              Func<QueryContext, DbDataReader, ResultContext, SingleQueryResultCoordinator, LearningSession>, 
+              MultiModelVisualizer.Api.Data.AppDbContext, 
+              False, 
+              False, 
+              True
+          ), 
+          cancellationToken: queryContext.CancellationToken)'
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20005]
+      Creating DbConnection.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20006]
+      Created DbConnection. (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__get_Item_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.session_id = @__get_Item_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__get_Item_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.session_id = @__get_Item_0
+      LIMIT 1
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'LearningSession' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'visuallearning' on server 'tcp://localhost:5432' is being disposed after spending 4ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Query[10111]
+      Compiling query expression: 
+      'DbSet<GenerationJob>()
+          .Count(j => j.SessionId == __id_0 && j.Status == "Processing")'
+dbug: Microsoft.EntityFrameworkCore.Query[10107]
+      Generated query execution expression: 
+      'queryContext => ShapedQueryCompilingExpressionVisitor.SingleAsync<int>(
+          asyncEnumerable: new SingleQueryingEnumerable<int>(
+              (RelationalQueryContext)queryContext, 
+              RelationalCommandCache.QueryExpression(
+                  Projection Mapping:
+                      EmptyProjectionMember -> 0
+                  SELECT CAST(count(*) AS integer)
+                  FROM generation_jobs AS g
+                  WHERE (g.session_id == @__id_0) && (g.status == 'Processing')), 
+              null, 
+              Func<QueryContext, DbDataReader, ResultContext, SingleQueryResultCoordinator, int>, 
+              MultiModelVisualizer.Api.Data.AppDbContext, 
+              False, 
+              False, 
+              True
+          ), 
+          cancellationToken: queryContext.CancellationToken)'
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__id_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT count(*)::int
+      FROM generation_jobs AS g
+      WHERE g.session_id = @__id_0 AND g.status = 'Processing'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__id_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT count(*)::int
+      FROM generation_jobs AS g
+      WHERE g.session_id = @__id_0 AND g.status = 'Processing'
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'visuallearning' on server 'tcp://localhost:5432' is being disposed after spending 1ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Query[10111]
+      Compiling query expression: 
+      'DbSet<GenerationJob>()
+          .Count(j => j.SessionId == __id_0 && j.Status == "Queued")'
+dbug: Microsoft.EntityFrameworkCore.Query[10107]
+      Generated query execution expression: 
+      'queryContext => ShapedQueryCompilingExpressionVisitor.SingleAsync<int>(
+          asyncEnumerable: new SingleQueryingEnumerable<int>(
+              (RelationalQueryContext)queryContext, 
+              RelationalCommandCache.QueryExpression(
+                  Projection Mapping:
+                      EmptyProjectionMember -> 0
+                  SELECT CAST(count(*) AS integer)
+                  FROM generation_jobs AS g
+                  WHERE (g.session_id == @__id_0) && (g.status == 'Queued')), 
+              null, 
+              Func<QueryContext, DbDataReader, ResultContext, SingleQueryResultCoordinator, int>, 
+              MultiModelVisualizer.Api.Data.AppDbContext, 
+              False, 
+              False, 
+              True
+          ), 
+          cancellationToken: queryContext.CancellationToken)'
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__id_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT count(*)::int
+      FROM generation_jobs AS g
+      WHERE g.session_id = @__id_0 AND g.status = 'Queued'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__id_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT count(*)::int
+      FROM generation_jobs AS g
+      WHERE g.session_id = @__id_0 AND g.status = 'Queued'
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'visuallearning' on server 'tcp://localhost:5432' is being disposed after spending 0ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Query[10111]
+      Compiling query expression: 
+      'DbSet<GenerationJob>()
+          .Where(j => j.SessionId == __id_0 && j.ReviewSeverity != null)
+          .OrderByDescending(j => j.UpdatedAt)
+          .Select(j => j.ReviewSeverity)
+          .FirstOrDefault()'
+dbug: Microsoft.EntityFrameworkCore.Query[10107]
+      Generated query execution expression: 
+      'queryContext => ShapedQueryCompilingExpressionVisitor.SingleOrDefaultAsync<string>(
+          asyncEnumerable: new SingleQueryingEnumerable<string>(
+              (RelationalQueryContext)queryContext, 
+              RelationalCommandCache.QueryExpression(
+                  Projection Mapping:
+                      EmptyProjectionMember -> 0
+                  SELECT TOP(1) g.review_severity
+                  FROM generation_jobs AS g
+                  WHERE (g.session_id == @__id_0) && (g.review_severity != NULL)
+                  ORDER BY g.updated_at DESC), 
+              null, 
+              Func<QueryContext, DbDataReader, ResultContext, SingleQueryResultCoordinator, string>, 
+              MultiModelVisualizer.Api.Data.AppDbContext, 
+              False, 
+              False, 
+              True
+          ), 
+          cancellationToken: queryContext.CancellationToken)'
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__id_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT g.review_severity
+      FROM generation_jobs AS g
+      WHERE g.session_id = @__id_0 AND g.review_severity IS NOT NULL
+      ORDER BY g.updated_at DESC
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__id_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT g.review_severity
+      FROM generation_jobs AS g
+      WHERE g.session_id = @__id_0 AND g.review_severity IS NOT NULL
+      ORDER BY g.updated_at DESC
+      LIMIT 1
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'visuallearning' on server 'tcp://localhost:5432' is being disposed after spending 0ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ObjectResultExecutor[1]
+      Executing OkObjectResult, writing value of type 'MultiModelVisualizer.Api.Models.SessionStatusResponse'.
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[105]
+      Executed action MultiModelVisualizer.Api.Controllers.SessionsController.GetStatus (MultiModelVisualizer.Api) in 62.0571ms
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'MultiModelVisualizer.Api.Controllers.SessionsController.GetStatus (MultiModelVisualizer.Api)'
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10407]
+      'AppDbContext' disposed.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20007]
+      Disposing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20008]
+      Disposed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost:5000/api/sessions/0d09b334-0a42-409a-b713-b31d1ced36fc/status - 200 - application/json;+charset=utf-8 65.2910ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://localhost:5000/api/sessions/0d09b334-0a42-409a-b713-b31d1ced36fc/cancel - application/x-www-form-urlencoded 0
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'MultiModelVisualizer.Api.Controllers.SessionsController.Cancel (MultiModelVisualizer.Api)'
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[102]
+      Route matched with {action = "Cancel", controller = "Sessions"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.ActionResult`1[MultiModelVisualizer.Api.Models.CancelResponse]] Cancel(System.Guid, System.Threading.CancellationToken) on controller MultiModelVisualizer.Api.Controllers.SessionsController (MultiModelVisualizer.Api).
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10403]
+      Entity Framework Core 8.0.4 initialized 'AppDbContext' using provider 'Npgsql.EntityFrameworkCore.PostgreSQL:8.0.4+51faf6e9c9c7ef99c3e98d98a96adb8fa8ae4553' with options: None
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20005]
+      Creating DbConnection.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20006]
+      Created DbConnection. (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__get_Item_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.session_id = @__get_Item_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__get_Item_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.session_id = @__get_Item_0
+      LIMIT 1
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'LearningSession' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'visuallearning' on server 'tcp://localhost:5432' is being disposed after spending 0ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10805]
+      The navigation 'LearningSessionEvent.Session' was detected as changed. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'LearningSessionEvent' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.Update[10004]
+      SaveChanges starting for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10800]
+      DetectChanges starting for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10802]
+      The unchanged property 'LearningSession.CancelledAt' was detected as changed and will be marked as modified. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see property values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10807]
+      An entity of type 'LearningSession' tracked by 'AppDbContext' changed state from 'Unchanged' to 'Modified'. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10802]
+      The unchanged property 'LearningSession.CurrentState' was detected as changed and will be marked as modified. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see property values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10802]
+      The unchanged property 'LearningSession.UpdatedDate' was detected as changed and will be marked as modified. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see property values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10801]
+      DetectChanges completed for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.Update[20700]
+      Executing 2 update commands as a batch.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Transaction[20209]
+      Beginning transaction with isolation level 'Unspecified'.
+dbug: Microsoft.EntityFrameworkCore.Database.Transaction[20200]
+      Began transaction with isolation level 'ReadCommitted'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@p0='?' (DbType = Guid), @p1='?' (DbType = DateTime), @p2='?' (DbType = Object), @p3='?', @p4='?', @p5='?' (DbType = Guid), @p6='?', @p10='?' (DbType = Guid), @p7='?' (DbType = DateTime), @p8='?', @p9='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO learning_session_events (event_id, created_at, event_payload, new_state, previous_state, session_id, trigger)
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6);
+      UPDATE learning_sessions SET cancelled_at = @p7, current_state = @p8, updated_date = @p9
+      WHERE session_id = @p10;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (DbType = DateTime), @p2='?' (DbType = Object), @p3='?', @p4='?', @p5='?' (DbType = Guid), @p6='?', @p10='?' (DbType = Guid), @p7='?' (DbType = DateTime), @p8='?', @p9='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO learning_session_events (event_id, created_at, event_payload, new_state, previous_state, session_id, trigger)
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6);
+      UPDATE learning_sessions SET cancelled_at = @p7, current_state = @p8, updated_date = @p9
+      WHERE session_id = @p10;
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'visuallearning' on server 'tcp://localhost:5432' is being disposed after spending 0ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Transaction[20210]
+      Committing transaction.
+dbug: Microsoft.EntityFrameworkCore.Database.Transaction[20202]
+      Committed transaction.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Transaction[20204]
+      Disposing transaction.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10807]
+      An entity of type 'LearningSessionEvent' tracked by 'AppDbContext' changed state from 'Added' to 'Unchanged'. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10807]
+      An entity of type 'LearningSession' tracked by 'AppDbContext' changed state from 'Modified' to 'Unchanged'. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.Update[10005]
+      SaveChanges completed for 'AppDbContext' with 2 entities written to the database.
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ObjectResultExecutor[1]
+      Executing OkObjectResult, writing value of type 'MultiModelVisualizer.Api.Models.CancelResponse'.
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[105]
+      Executed action MultiModelVisualizer.Api.Controllers.SessionsController.Cancel (MultiModelVisualizer.Api) in 36.0388ms
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'MultiModelVisualizer.Api.Controllers.SessionsController.Cancel (MultiModelVisualizer.Api)'
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10407]
+      'AppDbContext' disposed.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20007]
+      Disposing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20008]
+      Disposed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://localhost:5000/api/sessions/0d09b334-0a42-409a-b713-b31d1ced36fc/cancel - 200 - application/json;+charset=utf-8 38.9669ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://localhost:5000/api/sessions/0d09b334-0a42-409a-b713-b31d1ced36fc/clone - application/x-www-form-urlencoded 0
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'MultiModelVisualizer.Api.Controllers.SessionsController.Clone (MultiModelVisualizer.Api)'
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[102]
+      Route matched with {action = "Clone", controller = "Sessions"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.ActionResult`1[MultiModelVisualizer.Api.Models.CloneResponse]] Clone(System.Guid, System.Threading.CancellationToken) on controller MultiModelVisualizer.Api.Controllers.SessionsController (MultiModelVisualizer.Api).
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10403]
+      Entity Framework Core 8.0.4 initialized 'AppDbContext' using provider 'Npgsql.EntityFrameworkCore.PostgreSQL:8.0.4+51faf6e9c9c7ef99c3e98d98a96adb8fa8ae4553' with options: None
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20005]
+      Creating DbConnection.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20006]
+      Created DbConnection. (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__get_Item_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.session_id = @__get_Item_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__get_Item_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.session_id = @__get_Item_0
+      LIMIT 1
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'LearningSession' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'visuallearning' on server 'tcp://localhost:5432' is being disposed after spending 0ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'LearningSession' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10805]
+      The navigation 'LearningSessionEvent.Session' was detected as changed. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'LearningSessionEvent' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.Update[10004]
+      SaveChanges starting for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10800]
+      DetectChanges starting for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10801]
+      DetectChanges completed for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.Update[20700]
+      Executing 2 update commands as a batch.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Transaction[20209]
+      Beginning transaction with isolation level 'Unspecified'.
+dbug: Microsoft.EntityFrameworkCore.Database.Transaction[20200]
+      Began transaction with isolation level 'ReadCommitted'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@p0='?' (DbType = Guid), @p1='?' (DbType = DateTime), @p2='?' (DbType = Object), @p3='?' (DbType = Guid), @p4='?', @p5='?' (DbType = DateTime), @p6='?', @p7='?', @p8='?', @p9='?' (DbType = DateTime), @p10='?', @p11='?' (DbType = Boolean), @p12='?', @p13='?', @p14='?', @p15='?', @p16='?' (DbType = DateTime), @p17='?' (DbType = Guid), @p18='?' (DbType = Object), @p19='?', @p20='?' (DbType = Guid), @p21='?' (DbType = DateTime), @p22='?' (DbType = Object), @p23='?', @p24='?', @p25='?' (DbType = Guid), @p26='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO learning_sessions (session_id, cancelled_at, citations, cloned_from_session_id, component_source_strategy, created_date, current_state, difficulty_level, domain, expires_at, explanation, fast_track, final_output, intent, selected_components, topic, updated_date, user_id, visualization_plan, visualization_type)
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16, @p17, @p18, @p19);
+      INSERT INTO learning_session_events (event_id, created_at, event_payload, new_state, previous_state, session_id, trigger)
+      VALUES (@p20, @p21, @p22, @p23, @p24, @p25, @p26);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (DbType = DateTime), @p2='?' (DbType = Object), @p3='?' (DbType = Guid), @p4='?', @p5='?' (DbType = DateTime), @p6='?', @p7='?', @p8='?', @p9='?' (DbType = DateTime), @p10='?', @p11='?' (DbType = Boolean), @p12='?', @p13='?', @p14='?', @p15='?', @p16='?' (DbType = DateTime), @p17='?' (DbType = Guid), @p18='?' (DbType = Object), @p19='?', @p20='?' (DbType = Guid), @p21='?' (DbType = DateTime), @p22='?' (DbType = Object), @p23='?', @p24='?', @p25='?' (DbType = Guid), @p26='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO learning_sessions (session_id, cancelled_at, citations, cloned_from_session_id, component_source_strategy, created_date, current_state, difficulty_level, domain, expires_at, explanation, fast_track, final_output, intent, selected_components, topic, updated_date, user_id, visualization_plan, visualization_type)
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16, @p17, @p18, @p19);
+      INSERT INTO learning_session_events (event_id, created_at, event_payload, new_state, previous_state, session_id, trigger)
+      VALUES (@p20, @p21, @p22, @p23, @p24, @p25, @p26);
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'visuallearning' on server 'tcp://localhost:5432' is being disposed after spending 0ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Transaction[20210]
+      Committing transaction.
+dbug: Microsoft.EntityFrameworkCore.Database.Transaction[20202]
+      Committed transaction.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Transaction[20204]
+      Disposing transaction.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10807]
+      An entity of type 'LearningSession' tracked by 'AppDbContext' changed state from 'Added' to 'Unchanged'. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10807]
+      An entity of type 'LearningSessionEvent' tracked by 'AppDbContext' changed state from 'Added' to 'Unchanged'. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.Update[10005]
+      SaveChanges completed for 'AppDbContext' with 2 entities written to the database.
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ObjectResultExecutor[1]
+      Executing OkObjectResult, writing value of type 'MultiModelVisualizer.Api.Models.CloneResponse'.
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[105]
+      Executed action MultiModelVisualizer.Api.Controllers.SessionsController.Clone (MultiModelVisualizer.Api) in 11.1582ms
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'MultiModelVisualizer.Api.Controllers.SessionsController.Clone (MultiModelVisualizer.Api)'
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10407]
+      'AppDbContext' disposed.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20007]
+      Disposing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20008]
+      Disposed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://localhost:5000/api/sessions/0d09b334-0a42-409a-b713-b31d1ced36fc/clone - 200 - application/json;+charset=utf-8 13.2642ms
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[103]
+      HttpMessageHandler expired after 120000ms for client 'IOllamaService'
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[103]
+      HttpMessageHandler expired after 120000ms for client 'IKnowledgeService'
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0194ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0029ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0029ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0022ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.002ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.002ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0056ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0025ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0026ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0028ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.002ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0027ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0026ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0028ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0045ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.1223ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10403]
+      Entity Framework Core 8.0.4 initialized 'AppDbContext' using provider 'Npgsql.EntityFrameworkCore.PostgreSQL:8.0.4+51faf6e9c9c7ef99c3e98d98a96adb8fa8ae4553' with options: None
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20005]
+      Creating DbConnection.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20006]
+      Created DbConnection. (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__approvalCutoff_0='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.current_state = 'ApprovalPending' AND l.updated_date < @__approvalCutoff_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__approvalCutoff_0='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.current_state = 'ApprovalPending' AND l.updated_date < @__approvalCutoff_0
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'visuallearning' on server 'tcp://localhost:5432' is being disposed after spending 0ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__pausedCutoff_0='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.current_state = 'Paused' AND l.updated_date < @__pausedCutoff_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__pausedCutoff_0='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.current_state = 'Paused' AND l.updated_date < @__pausedCutoff_0
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'visuallearning' on server 'tcp://localhost:5432' is being disposed after spending 0ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10407]
+      'AppDbContext' disposed.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20007]
+      Disposing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20008]
+      Disposed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0018ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0018ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0015ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0018ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0021ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0025ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0017ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0021ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0017ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.002ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0021ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0019ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0025ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0017ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0033ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0026ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.002ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0019ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0017ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0019ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0017ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0022ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0813ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.001ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0009ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.001ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0012ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0014ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0011ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0011ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10403]
+      Entity Framework Core 8.0.4 initialized 'AppDbContext' using provider 'Npgsql.EntityFrameworkCore.PostgreSQL:8.0.4+51faf6e9c9c7ef99c3e98d98a96adb8fa8ae4553' with options: None
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20005]
+      Creating DbConnection.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20006]
+      Created DbConnection. (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__approvalCutoff_0='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.current_state = 'ApprovalPending' AND l.updated_date < @__approvalCutoff_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__approvalCutoff_0='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.current_state = 'ApprovalPending' AND l.updated_date < @__approvalCutoff_0
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'visuallearning' on server 'tcp://localhost:5432' is being disposed after spending 0ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__pausedCutoff_0='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.current_state = 'Paused' AND l.updated_date < @__pausedCutoff_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__pausedCutoff_0='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.current_state = 'Paused' AND l.updated_date < @__pausedCutoff_0
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'visuallearning' on server 'tcp://localhost:5432' is being disposed after spending 0ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10407]
+      'AppDbContext' disposed.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20007]
+      Disposing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20008]
+      Disposed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0013ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0011ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0014ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0011ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0009ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0013ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0011ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0015ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0011ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0014ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0014ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.001ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0015ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0015ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0015ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0017ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.001ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0009ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0014ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0008ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0012ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.001ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0013ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.001ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.001ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0015ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0014ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0016ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0019ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0022ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10403]
+      Entity Framework Core 8.0.4 initialized 'AppDbContext' using provider 'Npgsql.EntityFrameworkCore.PostgreSQL:8.0.4+51faf6e9c9c7ef99c3e98d98a96adb8fa8ae4553' with options: None
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20005]
+      Creating DbConnection.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20006]
+      Created DbConnection. (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__approvalCutoff_0='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.current_state = 'ApprovalPending' AND l.updated_date < @__approvalCutoff_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@__approvalCutoff_0='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.current_state = 'ApprovalPending' AND l.updated_date < @__approvalCutoff_0
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'visuallearning' on server 'tcp://localhost:5432' is being disposed after spending 0ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__pausedCutoff_0='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.current_state = 'Paused' AND l.updated_date < @__pausedCutoff_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__pausedCutoff_0='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT l.session_id, l.cancelled_at, l.citations, l.cloned_from_session_id, l.component_source_strategy, l.created_date, l.current_state, l.difficulty_level, l.domain, l.expires_at, l.explanation, l.fast_track, l.final_output, l.intent, l.selected_components, l.topic, l.updated_date, l.user_id, l.visualization_plan, l.visualization_type
+      FROM learning_sessions AS l
+      WHERE l.current_state = 'Paused' AND l.updated_date < @__pausedCutoff_0
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'visuallearning' on server 'tcp://localhost:5432' is being disposed after spending 0ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10407]
+      'AppDbContext' disposed.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20007]
+      Disposing connection to database 'visuallearning' on server 'tcp://localhost:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20008]
+      Disposed connection to database 'visuallearning' on server 'tcp://localhost:5432' (0ms).
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0008ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.001ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.001ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0009ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0013ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0016ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0013ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0012ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0009ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0011ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0013ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0011ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.001ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0015ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0009ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0011ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0009ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0016ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0012ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.001ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0008ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.001ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0008ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.001ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.001ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0016ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0017ms - processed: 0 items - remaining: 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[100]
+      Starting HttpMessageHandler cleanup cycle with 2 items
+dbug: Microsoft.Extensions.Http.DefaultHttpClientFactory[101]
+      Ending HttpMessageHandler cleanup cycle after 0.0009ms - processed: 0 items - remaining: 2 items

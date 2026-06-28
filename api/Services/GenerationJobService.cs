@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading.Channels;
+using Microsoft.EntityFrameworkCore;
 using MultiModelVisualizer.Api.Data;
 using MultiModelVisualizer.Api.Models;
 
@@ -65,13 +66,13 @@ public class JobProgressHub
 public class GenerationJobService : IGenerationJobService
 {
     private readonly AppDbContext _db;
-    private readonly Channel<Guid> _queue;
+    private readonly IRabbitMqService _rabbit;
     private readonly JobProgressHub _hub;
 
-    public GenerationJobService(AppDbContext db, Channel<Guid> queue, JobProgressHub hub)
+    public GenerationJobService(AppDbContext db, IRabbitMqService rabbit, JobProgressHub hub)
     {
         _db = db;
-        _queue = queue;
+        _rabbit = rabbit;
         _hub = hub;
     }
 
@@ -79,12 +80,33 @@ public class GenerationJobService : IGenerationJobService
     {
         var db = _db;
 
+        // Concurrency policy: max 1 active job per user — queue if one is already running
+        var activeJobCount = await db.GenerationJobs
+            .Include(j => j.Session)
+            .CountAsync(j => j.Session!.UserId == session.UserId
+                && (j.Status == JobStatus.Processing || j.Status == JobStatus.Queued), ct);
+
+        if (activeJobCount > 0)
+        {
+            // Still enqueue — worker picks up next available slot; notify via event
+            db.LearningSessionEvents.Add(new LearningSessionEvent
+            {
+                SessionId = session.SessionId,
+                PreviousState = session.CurrentState,
+                NewState = session.CurrentState,
+                Trigger = "ConcurrencyQueued",
+                EventPayload = JsonSerializer.Serialize(new { activeJobs = activeJobCount, message = "Another job is running; this job is queued." })
+            });
+        }
+
+        var vizType = string.IsNullOrWhiteSpace(session.VisualizationType) ? "auto" : session.VisualizationType;
         var job = new GenerationJob
         {
             SessionId = session.SessionId,
-            VisualizationType = session.VisualizationType ?? "diagram",
+            VisualizationType = vizType,
             Status = JobStatus.Queued,
             Progress = 0,
+            QueueName = QueueNames.ForVisualizationType(vizType),
         };
         db.GenerationJobs.Add(job);
 
@@ -104,7 +126,8 @@ public class GenerationJobService : IGenerationJobService
 
         await db.SaveChangesAsync(ct);
 
-        await _queue.Writer.WriteAsync(job.JobId, ct);
+        // Publish to RabbitMQ — the RabbitMqConsumerWorker will forward to GenerationWorker
+        _rabbit.Publish(job.QueueName, job.JobId);
         return job;
     }
 
